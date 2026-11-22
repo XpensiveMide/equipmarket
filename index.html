@@ -21,7 +21,7 @@ h2{margin:0 0 7px}.muted{color:var(--muted);font-size:14px}.categories,.grid{dis
 .cat,.card,.box{background:white;border:1px solid var(--line);border-radius:10px;padding:18px}.cat b{display:block;margin:9px 0}.ico{font-size:27px}
 .filters{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0}.filters button{background:white;border:1px solid var(--line)}.filters button.active{background:var(--navy);color:white}
 .card{padding:0;overflow:hidden}.photo{height:145px;background:#dce5ed;display:grid;place-items:center;font-size:42px}.body{padding:15px}.tag{font-size:11px;text-transform:uppercase;color:var(--blue);font-weight:bold}.body h3{margin:8px 0}.price{font-weight:bold;font-size:18px;margin:10px 0}.card button{width:100%}
-.notice{padding:13px;background:#fff7e9;border:1px solid #f2d5a9;border-radius:8px;font-size:13px;line-height:1.5;margin-top:20px}
+.thread{border:1px solid var(--line);border-radius:8px;padding:12px;margin:10px 0;background:#fff}.thread p{margin:7px 0;line-height:1.45}.thread small{color:var(--muted)}.notice{padding:13px;background:#fff7e9;border:1px solid #f2d5a9;border-radius:8px;font-size:13px;line-height:1.5;margin-top:20px}
 #dashboard{display:none}.dashgrid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.box h3{margin-top:0}
 label{display:block;font-size:13px;font-weight:bold;margin:12px 0 5px}input,select,textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:6px;font:inherit}textarea{min-height:75px}
 .formrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.formrow>*{flex:1}
@@ -53,7 +53,7 @@ footer{background:var(--navy);color:#dce8f3;text-align:center;padding:28px;margi
 <section class="wrap" id="listings"><div class="head"><div><h2>Equipment for sale</h2><div class="muted" id="listingStatus">Live equipment listings from sellers worldwide.</div></div><button onclick="requireLogin()">+ List equipment</button></div>
 <div class="filters"><button class="active" onclick="setCat('All',this)">All</button><button onclick="setCat('Construction',this)">Construction</button><button onclick="setCat('Industrial',this)">Industrial</button><button onclick="setCat('Agricultural',this)">Agricultural</button></div>
 <div class="grid" id="grid"></div>
-<div class="notice"><b>Marketplace preview:</b> Listings are loaded from the EquipMarket database. Seller photo uploads and buyer-seller messaging are planned for a later stage.</div></section>
+<div class="notice"><b>Marketplace:</b> Listings and buyer-to-seller enquiries are connected to the EquipMarket database. Seller photo uploads are planned for a later stage.</div></section>
 <section class="wrap" id="dashboard"><h2>Seller dashboard</h2><p class="muted" id="who"></p><div class="dashgrid">
 <div class="box"><h3>Create a listing</h3><form id="newListing">
 <label>Equipment name</label><input name="title" required maxlength="120" placeholder="e.g. Used wheel loader">
@@ -66,9 +66,10 @@ footer{background:var(--navy);color:#dce8f3;text-align:center;padding:28px;margi
 <p class="muted">Photo uploads will be added in the next stage. For now, publish the equipment details.</p>
 <div class="formrow"><button type="submit">Publish listing</button></div></form></div>
 <div class="box"><h3>Your listings</h3><div id="myListings" class="muted">Sign in to manage your listings.</div></div>
-</div></section>
+</div><div class="box" style="margin-top:16px"><h3>Enquiries & messages</h3><p class="muted">Messages about your listings and your replies appear here.</p><div id="messageInbox" class="muted">Sign in to view messages.</div></div></section>
 </main>
 <footer><div class="brand">Equip<span>Market</span></div><p>Global equipment trading, made easier.</p><p>Marketplace platform preview</p></footer>
+<div class="modal" id="enquiryModal"><div class="panel"><div class="head"><h2 id="enquiryTitle">Contact seller</h2><button class="secondary" type="button" onclick="closeEnquiry()">Close</button></div><form id="enquiryForm"><input type="hidden" name="listing_id"><input type="hidden" name="recipient_id"><label>Your message</label><textarea name="message" required maxlength="3000" placeholder="Hello, I am interested in this equipment. Is it still available?"></textarea><div class="formrow"><button type="submit">Send enquiry</button></div></form><p class="muted" id="enquiryMsg"></p></div></div>
 <div class="modal" id="authModal"><div class="panel"><div class="head"><h2 id="authTitle">Sign in</h2><button class="secondary" onclick="closeAuth()">Close</button></div>
 <form id="authForm"><label>Email</label><input name="email" type="email" required><label>Password</label><input name="password" type="password" minlength="8" required><div class="formrow"><button type="submit" id="authSubmit">Sign in</button><button class="secondary" type="button" onclick="toggleAuth()">Create account</button></div></form><p class="muted" id="authMsg"></p></div></div>
 <script>
@@ -95,11 +96,33 @@ async function loadListings(){if(!db){let q=(document.getElementById("q").value|
 let query=db.from("listings").select("id,title,category,price,currency,country,city,description,status,created_at").eq("status","active").order("created_at",{ascending:false}).limit(60);if(category!=="All")query=query.eq("category",category);let q=document.getElementById("q").value.trim();if(q)query=query.or(`title.ilike.%${q}%,city.ilike.%${q}%,country.ilike.%${q}%,description.ilike.%${q}%`);let {data,error}=await query;if(error){document.getElementById("listingStatus").textContent="Could not load listings: "+error.message;return}document.getElementById("listingStatus").textContent=data.length+" live listing(s)";render(data)}
 function render(items){document.getElementById("grid").innerHTML=items.length?items.map(x=>`<article class="card"><div class="photo">🏭</div><div class="body"><div class="tag">${safe(x.category)}</div><h3>${safe(x.title)}</h3><div class="muted">📍 ${safe([x.city,x.country].filter(Boolean).join(", "))}</div><p class="muted">${safe(x.description||"")}</p><div class="price">${safe(x.currency||"")} ${safe(x.price??"Contact seller")}</div><button onclick="enquire('${x.id}')">Enquire</button></div></article>`).join(""):"<p class='muted'>No listings found.</p>"}
 function safe(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function showDashboard(){document.getElementById("dashboard").style.display="block";document.getElementById("dashboard").scrollIntoView({behavior:"smooth"});loadMine()}
+function showDashboard(){document.getElementById("dashboard").style.display="block";document.getElementById("dashboard").scrollIntoView({behavior:"smooth"});loadMine();loadMessages()}
+async function loadMessages(){
+ const box=document.getElementById("messageInbox");
+ if(!db||!user){box.textContent="Sign in to view messages.";return}
+ const {data,error}=await db.from("messages").select("id,listing_id,sender_id,recipient_id,message,created_at,listings(title)").or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`).order("created_at",{ascending:false}).limit(100);
+ if(error){box.textContent="Could not load messages: "+error.message;return}
+ if(!data.length){box.textContent="No enquiries yet. Messages about your listings will appear here.";return}
+ box.innerHTML=data.map(m=>{const incoming=m.recipient_id===user.id;const other=incoming?m.sender_id:m.recipient_id;return `<div class="thread"><b>${safe(m.listings?.title||"Equipment enquiry")}</b><p>${safe(m.message)}</p><small>${incoming?"From buyer":"You sent"} · ${safe(new Date(m.created_at).toLocaleString())}</small>${incoming?`<div class="formrow"><button class="secondary" type="button" onclick="replyTo('${m.listing_id}','${other}')">Reply</button></div>`:""}</div>`}).join("");
+}
+function openEnquiry(listing,title,recipient){
+ document.getElementById("enquiryTitle").textContent="Enquire about "+title;
+ const f=document.getElementById("enquiryForm");f.elements.listing_id.value=listing;f.elements.recipient_id.value=recipient;f.elements.message.value="";
+ document.getElementById("enquiryMsg").textContent="";document.getElementById("enquiryModal").classList.add("open");
+}
+function closeEnquiry(){document.getElementById("enquiryModal").classList.remove("open")}
+function replyTo(listing,recipient){const title="Reply to enquiry";openEnquiry(listing,title,recipient)}
+document.getElementById("enquiryForm").addEventListener("submit",async e=>{
+ e.preventDefault();if(!db||!user){alert("Please sign in first.");return}
+ const f=Object.fromEntries(new FormData(e.target));const message=f.message.trim();if(!message)return;
+ const {error}=await db.from("messages").insert({listing_id:f.listing_id,sender_id:user.id,recipient_id:f.recipient_id,message});
+ if(error){document.getElementById("enquiryMsg").textContent="Could not send: "+error.message;return}
+ closeEnquiry();alert("Your message has been sent.");loadMessages();
+});
 async function loadMine(){if(!db||!user){document.getElementById("myListings").textContent="Connect database and sign in.";return}let {data,error}=await db.from("listings").select("id,title,status,price").eq("seller_id",user.id).order("created_at",{ascending:false});document.getElementById("myListings").innerHTML=error?safe(error.message):data.length?data.map(x=>`<p><b>${safe(x.title)}</b><br>${safe(x.price)} · ${safe(x.status)} <button class="secondary" onclick="removeListing('${x.id}')">Delete</button></p>`).join(""):"You have not published any listings yet."}
 document.getElementById("newListing").addEventListener("submit",async e=>{e.preventDefault();if(!db||!user){alert("Connect Supabase and sign in first.");return}let f=Object.fromEntries(new FormData(e.target));let {error}=await db.from("listings").insert({title:f.title,category:f.category,price:Number(f.price),currency:f.currency,country:f.country,city:f.city,description:f.description,seller_id:user.id,status:"active"});if(error){alert(error.message);return}e.target.reset();await loadMine();await loadListings();alert("Your listing has been published.")});
 async function removeListing(id){if(!confirm("Delete this listing?"))return;let {error}=await db.from("listings").delete().eq("id",id);if(error)alert(error.message);else{loadMine();loadListings()}}
-async function enquire(id){if(!db){alert("Preview only. Live seller enquiries are enabled after database setup.");return}let {data,error}=await db.from("listings").select("title,seller_id").eq("id",id).single();if(error){alert(error.message);return}if(!user){alert("Please register or sign in, then contact the seller through the marketplace enquiry system (to be enabled in the next stage).");return}alert("Listing: "+data.title+"\nEnquiry messaging is the next feature to activate.")}
+async function enquire(id){if(!db){alert("Messaging is unavailable in preview mode.");return}let {data,error}=await db.from("listings").select("id,title,seller_id,status").eq("id",id).single();if(error){alert(error.message);return}if(!user){alert("Please sign in to contact the seller.");openAuth();return}if(user.id===data.seller_id){alert("This is your own listing. Buyers can contact you from this page.");return}if(data.status!=="active"){alert("This listing is not currently active.");return}openEnquiry(data.id,data.title,data.seller_id)}
 init();
 </script>
 </body></html>
