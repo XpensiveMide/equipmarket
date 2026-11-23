@@ -82,7 +82,7 @@ footer{background:var(--navy);color:#dce8f3;text-align:center;padding:28px;margi
 <p class="muted">Photo uploads will be added in the next stage. For now, publish the equipment details.</p>
 <div class="formrow"><button type="submit">Publish listing</button></div></form></div>
 <div class="box"><h3>Your listings</h3><div id="myListings" class="muted">Sign in to manage your listings.</div></div>
-</div><div class="box" style="margin-top:16px"><div class="head"><h3>Enquiries & messages</h3><button class="secondary" type="button" onclick="enableMessageNotifications()">Enable alerts</button></div><p class="muted">Messages about your listings and your replies appear here. New incoming messages are checked while you are signed in and the website is open.</p><div id="messageInbox" class="muted">Sign in to view messages.</div></div></section>
+</div><div class="box" style="margin-top:16px"><div class="head"><h3>Enquiries & messages</h3><button class="secondary" type="button" onclick="enableMessageNotifications()">Enable alerts</button></div><p class="muted">Messages about your listings and your replies appear here. <span id="messageAlertStatus">Alerts start when you sign in.</span></p><div id="messageInbox" class="muted">Sign in to view messages.</div></div></section>
 </main>
 <footer><div class="brand">Equip<span>Market</span></div><p>Global equipment trading, made easier.</p><p>Marketplace platform preview</p></footer>
 <div class="modal" id="enquiryModal"><div class="panel"><div class="head"><h2 id="enquiryTitle">Contact seller</h2><button class="secondary" type="button" onclick="closeEnquiry()">Close</button></div><form id="enquiryForm"><input type="hidden" name="listing_id"><input type="hidden" name="recipient_id"><label>Your message</label><textarea name="message" required maxlength="3000" placeholder="Hello, I am interested in this equipment. Is it still available?"></textarea><div class="formrow"><button type="submit">Send enquiry</button></div></form><p class="muted" id="enquiryMsg"></p></div></div>
@@ -104,6 +104,12 @@ let knownIncomingMessageIds=new Set();
 let notificationUserId=null;
 let notificationBaselineLoaded=false;
 let messageNoticeTimeout=null;
+let messageCheckInProgress=false;
+
+function setMessageAlertStatus(message){
+ const el=document.getElementById("messageAlertStatus");
+ if(el)el.textContent=message;
+}
 
 function showMessageNotice(title,message){
  const notice=document.getElementById("messageNotice");
@@ -111,71 +117,94 @@ function showMessageNotice(title,message){
  notice.innerHTML=`<b>${safe(title)}</b>${safe(message)}`;
  notice.classList.add("show");
  clearTimeout(messageNoticeTimeout);
- messageNoticeTimeout=setTimeout(()=>notice.classList.remove("show"),7000);
+ messageNoticeTimeout=setTimeout(()=>notice.classList.remove("show"),9000);
 }
 
 async function enableMessageNotifications(){
  if(!user){showMessageNotice("Sign in required","Please sign in to enable message alerts.");return}
  if(!("Notification" in window)){
-  showMessageNotice("Browser alerts unavailable","Your browser does not support desktop notifications here. In-app alerts will still appear while EquipMarket is open.");
+  showMessageNotice("Browser alerts unavailable","In-app alerts will still appear while EquipMarket is open.");
+  setMessageAlertStatus("In-app alerts are being checked while this page stays open.");
   return;
  }
  try{
   const permission=await Notification.requestPermission();
   if(permission==="granted"){
-   showMessageNotice("Message alerts enabled","You'll receive browser alerts for new incoming messages while EquipMarket is open.");
+   showMessageNotice("Browser alerts enabled","New messages can trigger browser notifications while this page is open.");
   }else{
-   showMessageNotice("Alerts not enabled","You can allow notifications for EquipMarket in your browser settings.");
+   showMessageNotice("Browser alerts not enabled","In-app alerts will still appear while EquipMarket is open.");
   }
  }catch(e){
-  showMessageNotice("Could not enable alerts","Your browser did not allow notification permission.");
+  showMessageNotice("Browser alerts unavailable","In-app alerts will still appear while EquipMarket is open.");
  }
 }
 
 async function checkForNewMessages(){
- if(!db||!user)return;
- if(notificationUserId!==user.id){
-  notificationUserId=user.id;
-  knownIncomingMessageIds=new Set();
- }
- const {data,error}=await db.from("messages")
-  .select("id,sender_id,message,created_at,listing_id,listings(title)")
-  .eq("recipient_id",user.id)
-  .order("created_at",{ascending:false})
-  .limit(20);
- if(error)return;
- if(!notificationBaselineLoaded){
-  (data||[]).forEach(m=>knownIncomingMessageIds.add(m.id));
-  notificationBaselineLoaded=true;
-  return;
- }
- if(!data||!data.length)return;
- const fresh=data.filter(m=>!knownIncomingMessageIds.has(m.id));
- data.forEach(m=>knownIncomingMessageIds.add(m.id));
- if(knownIncomingMessageIds.size>100){
-  knownIncomingMessageIds=new Set(data.map(m=>m.id));
- }
- fresh.reverse().forEach(m=>{
-  const title=m.listings?.title||"Equipment enquiry";
-  const preview=String(m.message||"New message").slice(0,120);
-  showMessageNotice("New message about "+title,preview);
-  if("Notification" in window && Notification.permission==="granted"){
-   try{new Notification("EquipMarket: "+title,{body:preview})}catch(e){}
+ if(!db||!user||messageCheckInProgress)return;
+ const checkingUserId=user.id;
+ messageCheckInProgress=true;
+ try{
+  // Keep this query independent of the listings relationship so a missing
+  // foreign-key relationship cannot silently stop the alert check.
+  const {data,error}=await db.from("messages")
+   .select("id,sender_id,message,created_at,listing_id")
+   .eq("recipient_id",checkingUserId)
+   .order("created_at",{ascending:false})
+   .limit(50);
+  if(user?.id!==checkingUserId)return;
+  if(error){
+   setMessageAlertStatus("Alert check failed: "+error.message);
+   return;
   }
- });
- if(fresh.length && document.getElementById("dashboard")?.style.display==="block"){
-  loadMessages();
+  const rows=data||[];
+  if(!notificationBaselineLoaded){
+   rows.forEach(m=>knownIncomingMessageIds.add(m.id));
+   notificationBaselineLoaded=true;
+   setMessageAlertStatus("Alerts active. Waiting for new messages.");
+   return;
+  }
+  const fresh=rows.filter(m=>!knownIncomingMessageIds.has(m.id));
+  rows.forEach(m=>knownIncomingMessageIds.add(m.id));
+  if(knownIncomingMessageIds.size>200){
+   knownIncomingMessageIds=new Set(rows.map(m=>m.id));
+  }
+  fresh.reverse().forEach(m=>{
+   const preview=String(m.message||"You have a new message.").slice(0,140);
+   showMessageNotice("New EquipMarket message",preview);
+   if("Notification" in window && Notification.permission==="granted"){
+    try{new Notification("EquipMarket: New message",{body:preview})}catch(e){}
+   }
+  });
+  setMessageAlertStatus(fresh.length?"New message detected just now.":"Alerts active. Waiting for new messages.");
+  if(fresh.length && document.getElementById("dashboard")?.style.display==="block"){
+   loadMessages();
+  }
+ }catch(e){
+  setMessageAlertStatus("Alert check error: "+(e?.message||"Please refresh the page."));
+ }finally{
+  messageCheckInProgress=false;
  }
 }
 
 function startMessageNotifications(){
+ if(!db||!user){
+  if(messagePoller)clearInterval(messagePoller);
+  messagePoller=null;notificationUserId=null;
+  knownIncomingMessageIds=new Set();notificationBaselineLoaded=false;
+  messageCheckInProgress=false;
+  setMessageAlertStatus("Sign in to start message alerts.");
+  return;
+ }
+ // Auth initialization can fire twice (getSession and onAuthStateChange).
+ // Do not reset the baseline when the same signed-in user is already polling.
+ if(notificationUserId===user.id && messagePoller)return;
  if(messagePoller)clearInterval(messagePoller);
- if(!db||!user){messagePoller=null;notificationUserId=null;knownIncomingMessageIds=new Set();notificationBaselineLoaded=false;return}
  notificationUserId=user.id;
  knownIncomingMessageIds=new Set();
  notificationBaselineLoaded=false;
+ setMessageAlertStatus("Connecting to message alerts...");
  checkForNewMessages();
- messagePoller=setInterval(checkForNewMessages,20000);
+ messagePoller=setInterval(checkForNewMessages,15000);
 }
 
 function init(){if(configured()){db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);db.auth.onAuthStateChange((_e,s)=>{user=s?.user||null;updateNav();startMessageNotifications();});db.auth.getSession().then(({data})=>{user=data.session?.user||null;updateNav();loadListings();startMessageNotifications()})}else{document.getElementById("listingStatus").textContent="Preview mode — connect Supabase to enable real accounts and live listings.";render(demo)}}
