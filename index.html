@@ -100,10 +100,16 @@ function showDashboard(){document.getElementById("dashboard").style.display="blo
 async function loadMessages(){
  const box=document.getElementById("messageInbox");
  if(!db||!user){box.textContent="Sign in to view messages.";return}
- const {data,error}=await db.from("messages").select("id,listing_id,sender_id,recipient_id,message,created_at,listings(title)").or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`).order("created_at",{ascending:false}).limit(100);
+ const {data,error}=await db.from("messages").select("id,listing_id,sender_id,recipient_id,message,created_at,listings(title,seller_id)").or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`).order("created_at",{ascending:false}).limit(100);
  if(error){box.textContent="Could not load messages: "+error.message;return}
  if(!data.length){box.textContent="No enquiries yet. Messages about your listings will appear here.";return}
- box.innerHTML=data.map(m=>{const incoming=m.recipient_id===user.id;const other=incoming?m.sender_id:m.recipient_id;return `<div class="thread"><b>${safe(m.listings?.title||"Equipment enquiry")}</b><p>${safe(m.message)}</p><small>${incoming?"From buyer":"You sent"} · ${safe(new Date(m.created_at).toLocaleString())}</small>${incoming?`<div class="formrow"><button class="secondary" type="button" onclick="replyTo('${m.listing_id}','${other}')">Reply</button></div>`:""}</div>`}).join("");
+ box.innerHTML=data.map(m=>{
+  const incoming=m.recipient_id===user.id;
+  const other=incoming?m.sender_id:m.recipient_id;
+  const sellerId=m.listings?.seller_id;
+  const senderLabel=incoming?(sellerId&&m.sender_id===sellerId?"From seller":"From buyer"):"You sent";
+  return `<div class="thread"><b>${safe(m.listings?.title||"Equipment enquiry")}</b><p>${safe(m.message)}</p><small>${senderLabel} · ${safe(new Date(m.created_at).toLocaleString())}</small>${incoming?`<div class="formrow"><button class="secondary" type="button" onclick="replyTo('${m.listing_id}','${other}')">Reply</button></div>`:""}</div>`
+ }).join("");
 }
 function openEnquiry(listing,title,recipient){
  document.getElementById("enquiryTitle").textContent="Enquire about "+title;
