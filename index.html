@@ -21,7 +21,18 @@ h2{margin:0 0 7px}.muted{color:var(--muted);font-size:14px}.categories,.grid{dis
 .cat,.card,.box{background:white;border:1px solid var(--line);border-radius:10px;padding:18px}.cat b{display:block;margin:9px 0}.ico{font-size:27px}
 .filters{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0}.filters button{background:white;border:1px solid var(--line)}.filters button.active{background:var(--navy);color:white}
 .card{padding:0;overflow:hidden}.photo{height:145px;background:#dce5ed;display:grid;place-items:center;font-size:42px}.body{padding:15px}.tag{font-size:11px;text-transform:uppercase;color:var(--blue);font-weight:bold}.body h3{margin:8px 0}.price{font-weight:bold;font-size:18px;margin:10px 0}.card button{width:100%}
-.thread{border:1px solid var(--line);border-radius:8px;padding:12px;margin:10px 0;background:#fff}.thread p{margin:7px 0;line-height:1.45}.thread small{color:var(--muted)}.notice{padding:13px;background:#fff7e9;border:1px solid #f2d5a9;border-radius:8px;font-size:13px;line-height:1.5;margin-top:20px}
+.thread{border:1px solid var(--line);border-radius:8px;padding:12px;margin:10px 0;background:#fff}.thread p{margin:7px 0;line-height:1.45}.thread small{color:var(--muted)}
+.conversation{border:1px solid var(--line);border-radius:10px;background:#fff;margin:12px 0;overflow:hidden}
+.conversation-head{padding:13px 15px;background:#f8fafc;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.conversation-head b{display:block}
+.conversation-head small,.message-meta{color:var(--muted);font-size:12px}
+.conversation-messages{padding:8px 15px}
+.message-line{padding:10px 0;border-bottom:1px solid var(--line)}
+.message-line:last-child{border-bottom:0}
+.message-line p{margin:5px 0;line-height:1.5;overflow-wrap:anywhere}
+.message-meta{display:flex;gap:8px;flex-wrap:wrap}
+.conversation-actions{padding:0 15px 14px}
+.notice{padding:13px;background:#fff7e9;border:1px solid #f2d5a9;border-radius:8px;font-size:13px;line-height:1.5;margin-top:20px}
 #dashboard{display:none}.dashgrid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.box h3{margin-top:0}
 label{display:block;font-size:13px;font-weight:bold;margin:12px 0 5px}input,select,textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:6px;font:inherit}textarea{min-height:75px}
 .formrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.formrow>*{flex:1}
@@ -100,15 +111,43 @@ function showDashboard(){document.getElementById("dashboard").style.display="blo
 async function loadMessages(){
  const box=document.getElementById("messageInbox");
  if(!db||!user){box.textContent="Sign in to view messages.";return}
- const {data,error}=await db.from("messages").select("id,listing_id,sender_id,recipient_id,message,created_at,listings(title,seller_id)").or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`).order("created_at",{ascending:false}).limit(100);
+ box.textContent="Loading conversations...";
+ const {data,error}=await db.from("messages")
+  .select("id,listing_id,sender_id,recipient_id,message,created_at,listings(title,seller_id)")
+  .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
+  .order("created_at",{ascending:false})
+  .limit(500);
  if(error){box.textContent="Could not load messages: "+error.message;return}
- if(!data.length){box.textContent="No enquiries yet. Messages about your listings will appear here.";return}
- box.innerHTML=data.map(m=>{
-  const incoming=m.recipient_id===user.id;
-  const other=incoming?m.sender_id:m.recipient_id;
-  const sellerId=m.listings?.seller_id;
-  const senderLabel=incoming?(sellerId&&m.sender_id===sellerId?"From seller":"From buyer"):"You sent";
-  return `<div class="thread"><b>${safe(m.listings?.title||"Equipment enquiry")}</b><p>${safe(m.message)}</p><small>${senderLabel} · ${safe(new Date(m.created_at).toLocaleString())}</small>${incoming?`<div class="formrow"><button class="secondary" type="button" onclick="replyTo('${m.listing_id}','${other}')">Reply</button></div>`:""}</div>`
+ if(!data||!data.length){box.textContent="No enquiries yet. Messages about your listings will appear here.";return}
+
+ const conversations=new Map();
+ data.forEach(m=>{
+  const other=m.sender_id===user.id?m.recipient_id:m.sender_id;
+  const key=m.listing_id+"_"+other;
+  if(!conversations.has(key)){
+   conversations.set(key,{
+    listingId:m.listing_id,
+    other:other,
+    title:m.listings?.title||"Equipment enquiry",
+    sellerId:m.listings?.seller_id||null,
+    messages:[]
+   });
+  }
+  conversations.get(key).messages.push(m);
+ });
+
+ const threads=Array.from(conversations.values());
+ threads.forEach(thread=>thread.messages.sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)));
+ threads.sort((a,b)=>new Date(b.messages[b.messages.length-1].created_at)-new Date(a.messages[a.messages.length-1].created_at));
+
+ box.innerHTML=threads.map(thread=>{
+  const messages=thread.messages.map(m=>{
+   const mine=m.sender_id===user.id;
+   let senderLabel=mine?"You":(thread.sellerId&&m.sender_id===thread.sellerId?"Seller":"Buyer");
+   return `<div class="message-line"><div class="message-meta"><b>${senderLabel}</b><span>${safe(new Date(m.created_at).toLocaleString())}</span></div><p>${safe(m.message)}</p></div>`;
+  }).join("");
+  const count=thread.messages.length;
+  return `<div class="conversation"><div class="conversation-head"><div><b>${safe(thread.title)}</b><small>${count} message${count===1?"":"s"} in this conversation</small></div></div><div class="conversation-messages">${messages}</div><div class="conversation-actions"><button class="secondary" type="button" onclick="replyTo('${thread.listingId}','${thread.other}')">Reply</button></div></div>`;
  }).join("");
 }
 function openEnquiry(listing,title,recipient){
