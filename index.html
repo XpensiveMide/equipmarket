@@ -20,7 +20,7 @@ h1{font-size:clamp(34px,5vw,54px);max-width:720px;line-height:1.05;margin:13px 0
 h2{margin:0 0 7px}.muted{color:var(--muted);font-size:14px}.categories,.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:18px}
 .cat,.card,.box{background:white;border:1px solid var(--line);border-radius:10px;padding:18px}.cat b{display:block;margin:9px 0}.ico{font-size:27px}
 .filters{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0}.filters button{background:white;border:1px solid var(--line)}.filters button.active{background:var(--navy);color:white}
-.card{padding:0;overflow:hidden}.photo{height:145px;background:#dce5ed;display:grid;place-items:center;font-size:42px}.body{padding:15px}.tag{font-size:11px;text-transform:uppercase;color:var(--blue);font-weight:bold}.body h3{margin:8px 0}.price{font-weight:bold;font-size:18px;margin:10px 0}.card button{width:100%}
+.card{padding:0;overflow:hidden}.photo{height:145px;background:#dce5ed;display:grid;place-items:center;font-size:42px}.body{padding:15px}.tag{font-size:11px;text-transform:uppercase;color:var(--blue);font-weight:bold}.body h3{margin:8px 0}.price{font-weight:bold;font-size:18px;margin:10px 0}.card button{width:100%}.card .report-button{margin-top:8px;background:#fff;color:#8a3b2a;border:1px solid #e8c8c1}
 .thread{border:1px solid var(--line);border-radius:8px;padding:12px;margin:10px 0;background:#fff}.thread p{margin:7px 0;line-height:1.45}.thread small{color:var(--muted)}
 .conversation{border:1px solid var(--line);border-radius:10px;background:#fff;margin:12px 0;overflow:hidden}
 .conversation-head{padding:13px 15px;background:#f8fafc;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
@@ -86,6 +86,7 @@ footer{background:var(--navy);color:#dce8f3;text-align:center;padding:28px;margi
 </main>
 <footer><div class="brand">Equip<span>Market</span></div><p>Global equipment trading, made easier.</p><p>Marketplace platform preview</p></footer>
 <div class="modal" id="enquiryModal"><div class="panel"><div class="head"><h2 id="enquiryTitle">Contact seller</h2><button class="secondary" type="button" onclick="closeEnquiry()">Close</button></div><form id="enquiryForm"><input type="hidden" name="listing_id"><input type="hidden" name="recipient_id"><label>Your message</label><textarea name="message" required maxlength="3000" placeholder="Hello, I am interested in this equipment. Is it still available?"></textarea><div class="formrow"><button type="submit">Send enquiry</button></div></form><p class="muted" id="enquiryMsg"></p></div></div>
+<div class="modal" id="reportModal"><div class="panel"><div class="head"><h2>Report listing</h2><button class="secondary" type="button" onclick="closeReport()">Close</button></div><p class="muted" id="reportListingTitle"></p><form id="reportForm"><input type="hidden" name="listing_id"><label>Why are you reporting this listing?</label><select name="reason" required><option value="">Choose a reason</option><option>Suspicious price or payment request</option><option>Fake or misleading information</option><option>Duplicate listing</option><option>Prohibited or unsafe item</option><option>Other</option></select><label>Additional details (optional)</label><textarea name="details" maxlength="1000" placeholder="Tell us what seems wrong. Do not include passwords or payment details."></textarea><div class="formrow"><button type="submit">Submit report</button></div></form><p class="muted" id="reportMsg" aria-live="polite"></p></div></div>
 <div class="modal" id="authModal"><div class="panel"><div class="head"><h2 id="authTitle">Sign in</h2><button class="secondary" onclick="closeAuth()">Close</button></div>
 <form id="authForm"><label>Email</label><input name="email" type="email" required><label>Password</label><input name="password" type="password" minlength="8" required><div class="formrow"><button type="submit" id="authSubmit">Sign in</button><button class="secondary" type="button" onclick="toggleAuth()">Create account</button></div></form><p class="muted" id="authMsg"></p></div></div>
 <script>
@@ -218,7 +219,7 @@ document.getElementById("authForm").addEventListener("submit",async e=>{e.preven
 function setCat(c,b){category=c;document.querySelectorAll(".filters button").forEach(x=>x.classList.remove("active"));b.classList.add("active");loadListings()}
 async function loadListings(){if(!db){let q=(document.getElementById("q").value||"").toLowerCase();render(demo.filter(x=>(category==="All"||x.category===category)&&JSON.stringify(x).toLowerCase().includes(q)));return}
 let query=db.from("listings").select("id,title,category,price,currency,country,city,description,status,created_at").eq("status","active").order("created_at",{ascending:false}).limit(60);if(category!=="All")query=query.eq("category",category);let q=document.getElementById("q").value.trim();if(q)query=query.or(`title.ilike.%${q}%,city.ilike.%${q}%,country.ilike.%${q}%,description.ilike.%${q}%`);let {data,error}=await query;if(error){document.getElementById("listingStatus").textContent="Could not load listings: "+error.message;return}document.getElementById("listingStatus").textContent=data.length+" live listing(s)";render(data)}
-function render(items){document.getElementById("grid").innerHTML=items.length?items.map(x=>`<article class="card"><div class="photo">🏭</div><div class="body"><div class="tag">${safe(x.category)}</div><h3>${safe(x.title)}</h3><div class="muted">📍 ${safe([x.city,x.country].filter(Boolean).join(", "))}</div><p class="muted">${safe(x.description||"")}</p><div class="price">${safe(x.currency||"")} ${safe(x.price??"Contact seller")}</div><button onclick="enquire('${x.id}')">Enquire</button></div></article>`).join(""):"<p class='muted'>No listings found.</p>"}
+function render(items){document.getElementById("grid").innerHTML=items.length?items.map(x=>`<article class="card"><div class="photo">🏭</div><div class="body"><div class="tag">${safe(x.category)}</div><h3>${safe(x.title)}</h3><div class="muted">📍 ${safe([x.city,x.country].filter(Boolean).join(", "))}</div><p class="muted">${safe(x.description||"")}</p><div class="price">${safe(x.currency||"")} ${safe(x.price??"Contact seller")}</div><button onclick="enquire('${x.id}')">Enquire</button><button class="report-button" onclick="openReport('${x.id}',this)">Report listing</button></div></article>`).join(""):"<p class='muted'>No listings found.</p>"}
 function safe(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function showDashboard(){document.getElementById("dashboard").style.display="block";document.getElementById("dashboard").scrollIntoView({behavior:"smooth"});loadMine();loadMessages()}
 async function loadMessages(){
@@ -263,6 +264,26 @@ async function loadMessages(){
   return `<div class="conversation"><div class="conversation-head"><div><b>${safe(thread.title)}</b><small>${count} message${count===1?"":"s"} in this conversation</small></div></div><div class="conversation-messages">${messages}</div><div class="conversation-actions"><button class="secondary" type="button" onclick="replyTo('${thread.listingId}','${thread.other}')">Reply</button></div></div>`;
  }).join("");
 }
+function openReport(listing,button){
+ if(!user){alert("Please sign in to report a listing.");openAuth();return}
+ const form=document.getElementById("reportForm");form.reset();form.elements.listing_id.value=listing;
+ const title=button?.closest(".card")?.querySelector("h3")?.textContent||"this listing";
+ document.getElementById("reportListingTitle").textContent="Reporting: "+title;
+ document.getElementById("reportMsg").textContent="";
+ document.getElementById("reportModal").classList.add("open");
+}
+function closeReport(){document.getElementById("reportModal").classList.remove("open")}
+document.getElementById("reportForm").addEventListener("submit",async e=>{
+ e.preventDefault();if(!db||!user){document.getElementById("reportMsg").textContent="Please sign in again before submitting.";return}
+ const f=Object.fromEntries(new FormData(e.target));
+ const details=(f.details||"").trim();
+ const {error}=await db.from("listing_reports").insert({listing_id:f.listing_id,reporter_id:user.id,reason:f.reason,details:details||null});
+ if(error){document.getElementById("reportMsg").textContent=error.code==="23505"?"You have already reported this listing.":"Could not submit report: "+error.message;return}
+ document.getElementById("reportMsg").textContent="Thank you. Your report has been submitted for review.";
+ e.target.reset();
+ setTimeout(closeReport,1800);
+});
+
 function openEnquiry(listing,title,recipient){
  document.getElementById("enquiryTitle").textContent="Enquire about "+title;
  const f=document.getElementById("enquiryForm");f.elements.listing_id.value=listing;f.elements.recipient_id.value=recipient;f.elements.message.value="";
