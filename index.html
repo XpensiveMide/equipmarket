@@ -649,7 +649,85 @@ const {error}=await db.from("profiles").upsert(profile,{onConflict:"id"});
 if(error){status.textContent="Could not save: "+error.message;return}
 status.textContent="Your public seller profile has been saved successfully!";
 });
-document.getElementById("newListing").addEventListener("submit",async e=>{e.preventDefault();if(!db||!user){alert("Connect Supabase and sign in first.");return}let f=Object.fromEntries(new FormData(e.target));let {error}=await db.from("listings").insert({title:f.title,category:f.category,price:Number(f.price),currency:f.currency,country:f.country,city:f.city,description:f.description,seller_id:user.id,status:"active"});if(error){alert(error.message);return}e.target.reset();await loadMine();await loadListings();alert("Your listing has been published.")});
+
+document.getElementById("newListing").addEventListener("submit", async e => {
+  e.preventDefault();
+
+  if (!db || !user) {
+    alert("Connect Supabase and sign in first.");
+    return;
+  }
+
+  const form = e.target;
+  const f = Object.fromEntries(new FormData(form));
+  const files = Array.from(
+    document.getElementById("listingPhotos").files || []
+  );
+
+  if (files.length > 5) {
+    alert("You can upload a maximum of 5 photos.");
+    return;
+  }
+
+  if (files.some(file =>
+    !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
+    file.size > 10 * 1024 * 1024
+  )) {
+    alert("Each photo must be JPEG, PNG or WebP and no larger than 10 MB.");
+    return;
+  }
+
+  const photoUrls = [];
+  const uploadedPaths = [];
+
+  try {
+    for (const file of files) {
+      const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${user.id}/${crypto.randomUUID()}_${cleanName}`;
+
+      const { error: uploadError } = await db.storage
+        .from("listing-images")
+        .upload(path, file, { contentType: file.type });
+
+      if (uploadError) throw uploadError;
+
+      uploadedPaths.push(path);
+
+      const { data } = db.storage
+        .from("listing-images")
+        .getPublicUrl(path);
+
+      photoUrls.push(data.publicUrl);
+    }
+
+    const { error } = await db.from("listings").insert({
+      title: f.title,
+      category: f.category,
+      price: Number(f.price),
+      currency: f.currency,
+      country: f.country,
+      city: f.city,
+      description: f.description,
+      seller_id: user.id,
+      status: "active",
+      image_urls: photoUrls
+    });
+
+    if (error) throw error;
+
+    form.reset();
+    await loadMine();
+    await loadListings();
+    alert("Your listing and equipment photos have been published.");
+
+  } catch (error) {
+    if (uploadedPaths.length) {
+      await db.storage.from("listing-images").remove(uploadedPaths);
+    }
+    alert("Could not publish listing: " + error.message);
+  }
+});
+
 async function removeListing(id){if(!confirm("Delete this listing?"))return;let {error}=await db.from("listings").delete().eq("id",id);if(error)alert(error.message);else{loadMine();loadListings()}}
 async function enquire(id){if(!db){alert("Messaging is unavailable in preview mode.");return}let {data,error}=await db.from("listings").select("id,title,seller_id,status").eq("id",id).single();if(error){alert(error.message);return}if(!user){alert("Please sign in to contact the seller.");openAuth();return}if(user.id===data.seller_id){alert("This is your own listing. Buyers can contact you from this page.");return}if(data.status!=="active"){alert("This listing is not currently active.");return}openEnquiry(data.id,data.title,data.seller_id)}
 init();
