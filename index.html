@@ -121,7 +121,15 @@ footer{background:var(--navy);color:#dce8f3;text-align:center;padding:28px;margi
 <label>Country</label><input name="country" required placeholder="e.g. Nigeria">
 <label>City</label><input name="city" required placeholder="e.g. Akure">
 <label>Description</label><textarea name="description" required placeholder="Condition, year, operating hours, specifications..."></textarea>
-<p class="muted">Photo uploads will be added in the next stage. For now, publish the equipment details.</p>
+<label>Equipment photos (up to 5 images, max 10 MB each)</label>
+<input
+  type="file"
+  name="photos"
+  id="listingPhotos"
+  accept="image/jpeg,image/png,image/webp"
+  multiple
+>
+<p class="muted">Upload clear photos of the actual equipment. JPEG, PNG and WebP supported.</p>
 <div class="formrow"><button type="submit">Publish listing</button></div></form></div>
 <div class="box"><h3>Your listings</h3><div id="myListings" class="muted">Sign in to manage your listings.</div></div>
 </div>
