@@ -434,6 +434,62 @@ verifiedSellerIds=new Set(verifiedRows||[]);
 verifiedSellerIds=new Set((verifiedRows||[]).map(x=>x.seller_id));if(error){document.getElementById("listingStatus").textContent="Could not load listings: "+error.message;return}document.getElementById("listingStatus").textContent=data.length+" live listing(s)";render(data)}
 function render(items){document.getElementById("grid").innerHTML=items.length?items.map(x=>`<article class="card"><div class="photo">🏭</div><div class="body"><div class="tag">${safe(x.category)}</div>${verifiedSellerIds.has(x.seller_id)?'<span class="verified-badge">✓ Verified Seller</span>':''}<h3>${safe(x.title)}</h3><div class="muted">📍 ${safe([x.city,x.country].filter(Boolean).join(", "))}</div><p class="muted">${safe(x.description||"")}</p><div class="price">${safe(x.currency||"")} ${safe(x.price??"Contact seller")}</div><button onclick="viewSellerProfile('${x.seller_id}')">View Seller Profile</button>
 <button onclick="enquire('${x.id}')">Enquire</button><button class="report-button" onclick="openReport('${x.id}',this)">Report listing</button></div></article>`).join(""):"<p class='muted'>No listings found.</p>"}
+async function viewSellerProfile(sellerId){
+const profileSection=document.getElementById("publicSellerProfile");
+const grid=document.getElementById("grid");
+
+profileSection.style.display="block";
+profileSection.innerHTML="<p>Loading seller profile...</p>";
+grid.style.display="none";
+profileSection.scrollIntoView({behavior:"smooth"});
+
+const {data:profile,error}=await db.from("profiles")
+.select("business_name,seller_type,country,city,website,bio")
+.eq("id",sellerId).maybeSingle();
+
+if(error||!profile){
+profileSection.innerHTML="<p>Seller profile could not be loaded.</p><button onclick='closeSellerProfile()'>Back to listings</button>";
+return;
+}
+
+const {data:listings}=await db.from("listings")
+.select("id,title,category,price,currency,country,city,description")
+.eq("seller_id",sellerId)
+.eq("status","active");
+
+const verified=verifiedSellerIds.has(sellerId)
+?'<span class="verified-badge">✓ Verified Seller</span>':"";
+
+profileSection.innerHTML=`
+<button onclick="closeSellerProfile()">← Back to listings</button>
+<div class="box">
+<h2>${safe(profile.business_name||"Seller")}</h2>
+${verified}
+<p>${safe(profile.seller_type||"Seller")}</p>
+<p>📍 ${safe([profile.city,profile.country].filter(Boolean).join(", "))}</p>
+<p>${safe(profile.bio||"No business description added yet.")}</p>
+${profile.website?`<p>Website: ${safe(profile.website)}</p>`:""}
+</div>
+<h3>Equipment listed by this seller</h3>
+<div class="grid">
+${(listings||[]).map(x=>`
+<article class="card">
+<div class="body">
+<div class="tag">${safe(x.category)}</div>
+<h3>${safe(x.title)}</h3>
+<p class="muted">${safe([x.city,x.country].filter(Boolean).join(", "))}</p>
+<p>${safe(x.description||"")}</p>
+<div class="price">${safe(x.currency||"")} ${safe(x.price??"Contact seller")}</div>
+<button onclick="enquire('${x.id}')">Enquire</button>
+</div>
+</article>`).join("")||"<p>No active listings yet.</p>"}
+</div>`;
+}
+
+function closeSellerProfile(){
+document.getElementById("publicSellerProfile").style.display="none";
+document.getElementById("grid").style.display="grid";
+}
 function safe(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function showDashboard(){document.getElementById("adminDashboard").style.display="none";document.getElementById("dashboard").style.display="block";document.getElementById("dashboard").scrollIntoView({behavior:"smooth"});loadMine();loadMessages();loadSellerVerification();loadSellerProfile()}
 async function showAdminDashboard(){
