@@ -549,7 +549,26 @@ document.getElementById("enquiryForm").addEventListener("submit",async e=>{
  if(error){document.getElementById("enquiryMsg").textContent="Could not send: "+error.message;return}
  closeEnquiry();alert("Your message has been sent.");loadMessages();
 });
-async function loadMine(){if(!db||!user){document.getElementById("myListings").textContent="Connect database and sign in.";return}let {data,error}=await db.from("listings").select("id,title,status,price").eq("seller_id",user.id).order("created_at",{ascending:false});document.getElementById("myListings").innerHTML=error?safe(error.message):data.length?data.map(x=>`<p><b>${safe(x.title)}</b><br>${safe(x.price)} · ${safe(x.status)} <button class="secondary" onclick="removeListing('${x.id}')">Delete</button></p>`).join(""):"You have not published any listings yet."}
+async function loadMine(){if(!db||!user){document.getElementById("myListings").textContent="Connect database and sign in.";return}let {data,error}=await db.from("listings").select("id,title,status,price").eq("seller_id",user.id).order("created_at",{ascending:false});document.getElementById("myListings").innerHTML=error?safe(error.message):data.length?data.map(x=>`<p><b>${safe(x.title)}</b><br>${safe(x.price)} · ${safe(x.status)} <button class="secondary" onclick="removeListing('${x.id}')">Delete</button></p>`).join(""):"You have not published any listings yet."}document.getElementById("sellerProfileForm").addEventListener("submit",async e=>{
+e.preventDefault();
+if(!db||!user){alert("Please sign in first.");return}
+const profile={
+id:user.id,
+email:user.email,
+business_name:document.getElementById("profileBusinessName").value.trim(),
+seller_type:document.getElementById("profileSellerType").value,
+country:document.getElementById("profileCountry").value.trim(),
+city:document.getElementById("profileCity").value.trim(),
+phone:document.getElementById("profilePhone").value.trim(),
+website:document.getElementById("profileWebsite").value.trim(),
+bio:document.getElementById("profileBio").value.trim()
+};
+const status=document.getElementById("profileStatus");
+status.textContent="Saving profile...";
+const {error}=await db.from("profiles").upsert(profile,{onConflict:"id"});
+if(error){status.textContent="Could not save: "+error.message;return}
+status.textContent="Your public seller profile has been saved successfully!";
+});
 document.getElementById("newListing").addEventListener("submit",async e=>{e.preventDefault();if(!db||!user){alert("Connect Supabase and sign in first.");return}let f=Object.fromEntries(new FormData(e.target));let {error}=await db.from("listings").insert({title:f.title,category:f.category,price:Number(f.price),currency:f.currency,country:f.country,city:f.city,description:f.description,seller_id:user.id,status:"active"});if(error){alert(error.message);return}e.target.reset();await loadMine();await loadListings();alert("Your listing has been published.")});
 async function removeListing(id){if(!confirm("Delete this listing?"))return;let {error}=await db.from("listings").delete().eq("id",id);if(error)alert(error.message);else{loadMine();loadListings()}}
 async function enquire(id){if(!db){alert("Messaging is unavailable in preview mode.");return}let {data,error}=await db.from("listings").select("id,title,seller_id,status").eq("id",id).single();if(error){alert(error.message);return}if(!user){alert("Please sign in to contact the seller.");openAuth();return}if(user.id===data.seller_id){alert("This is your own listing. Buyers can contact you from this page.");return}if(data.status!=="active"){alert("This listing is not currently active.");return}openEnquiry(data.id,data.title,data.seller_id)}
