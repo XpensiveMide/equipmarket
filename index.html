@@ -86,6 +86,32 @@ footer{background:var(--navy);color:#dce8f3;text-align:center;padding:28px;margi
 <div class="grid" id="grid"></div>
 <div class="notice"><b>Marketplace:</b> Listings and buyer-to-seller enquiries are connected to the EquipMarket database. Seller photo uploads are planned for a later stage.</div></section>
 <section class="wrap" id="dashboard"><h2>Seller dashboard</h2><p class="muted" id="who"></p><div class="dashgrid">
+<div class="box">
+<h3>My Public Seller Profile</h3>
+<form id="sellerProfileForm">
+<label>Business name</label>
+<input id="profileBusinessName" placeholder="Your business name">
+<label>Seller type</label>
+<select id="profileSellerType">
+<option value="Individual">Individual</option>
+<option value="Dealer">Dealer</option>
+<option value="Manufacturer">Manufacturer</option>
+<option value="Supplier">Supplier</option>
+</select>
+<label>Country</label>
+<input id="profileCountry" placeholder="Country">
+<label>City</label>
+<input id="profileCity" placeholder="City">
+<label>Phone</label>
+<input id="profilePhone" placeholder="Phone number">
+<label>Website</label>
+<input id="profileWebsite" placeholder="Website (optional)">
+<label>Business description</label>
+<textarea id="profileBio" placeholder="Tell buyers about your business"></textarea>
+<button type="submit">Save public profile</button>
+<p class="muted" id="profileStatus"></p>
+</form>
+</div>
 <div class="box"><h3>Create a listing</h3><form id="newListing">
 <label>Equipment name</label><input name="title" required maxlength="120" placeholder="e.g. Used wheel loader">
 <label>Category</label><select name="category"><option>Construction</option><option>Industrial</option><option>Agricultural</option></select>
