@@ -549,7 +549,21 @@ document.getElementById("enquiryForm").addEventListener("submit",async e=>{
  if(error){document.getElementById("enquiryMsg").textContent="Could not send: "+error.message;return}
  closeEnquiry();alert("Your message has been sent.");loadMessages();
 });
-async function loadMine(){if(!db||!user){document.getElementById("myListings").textContent="Connect database and sign in.";return}let {data,error}=await db.from("listings").select("id,title,status,price").eq("seller_id",user.id).order("created_at",{ascending:false});document.getElementById("myListings").innerHTML=error?safe(error.message):data.length?data.map(x=>`<p><b>${safe(x.title)}</b><br>${safe(x.price)} · ${safe(x.status)} <button class="secondary" onclick="removeListing('${x.id}')">Delete</button></p>`).join(""):"You have not published any listings yet."}document.getElementById("sellerProfileForm").addEventListener("submit",async e=>{
+async function loadSellerProfile(){
+if(!db||!user)return;
+const {data,error}=await db.from("profiles")
+.select("business_name,seller_type,country,city,phone,website,bio")
+.eq("id",user.id).maybeSingle();
+if(error){console.error("Profile loading error:",error.message);return}
+if(!data)return;
+document.getElementById("profileBusinessName").value=data.business_name||"";
+document.getElementById("profileSellerType").value=data.seller_type||"Individual";
+document.getElementById("profileCountry").value=data.country||"";
+document.getElementById("profileCity").value=data.city||"";
+document.getElementById("profilePhone").value=data.phone||"";
+document.getElementById("profileWebsite").value=data.website||"";
+document.getElementById("profileBio").value=data.bio||"";
+}async function loadMine(){if(!db||!user){document.getElementById("myListings").textContent="Connect database and sign in.";return}let {data,error}=await db.from("listings").select("id,title,status,price").eq("seller_id",user.id).order("created_at",{ascending:false});document.getElementById("myListings").innerHTML=error?safe(error.message):data.length?data.map(x=>`<p><b>${safe(x.title)}</b><br>${safe(x.price)} · ${safe(x.status)} <button class="secondary" onclick="removeListing('${x.id}')">Delete</button></p>`).join(""):"You have not published any listings yet."}document.getElementById("sellerProfileForm").addEventListener("submit",async e=>{
 e.preventDefault();
 if(!db||!user){alert("Please sign in first.");return}
 const profile={
