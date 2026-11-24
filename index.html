@@ -37,7 +37,14 @@ h2{margin:0 0 7px}.muted{color:var(--muted);font-size:14px}.categories,.grid{dis
 #messageNotice b{display:block;margin-bottom:4px}
 
 .notice{padding:13px;background:#fff7e9;border:1px solid #f2d5a9;border-radius:8px;font-size:13px;line-height:1.5;margin-top:20px}
-#dashboard{display:none}.dashgrid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.box h3{margin-top:0}
+#dashboard,#adminDashboard{display:none}.dashgrid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.box h3{margin-top:0}
+#adminDashboard .report-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;margin:12px 0}
+.report-card .report-top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+.report-card .report-meta{font-size:13px;color:var(--muted);line-height:1.6;margin:8px 0}
+.report-card .report-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.report-card .report-actions select{max-width:190px}
+.admin-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:16px 0}
+.admin-toolbar select{max-width:220px}
 label{display:block;font-size:13px;font-weight:bold;margin:12px 0 5px}input,select,textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:6px;font:inherit}textarea{min-height:75px}
 .formrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.formrow>*{flex:1}
 .modal{display:none;position:fixed;inset:0;background:#081727aa;z-index:5;align-items:center;justify-content:center;padding:16px}.modal.open{display:flex}.panel{background:white;border-radius:12px;padding:22px;width:min(470px,100%);max-height:90vh;overflow:auto}
@@ -52,6 +59,7 @@ footer{background:var(--navy);color:#dce8f3;text-align:center;padding:28px;margi
 <a href="#listings" style="color:white;text-decoration:none">Browse</a>
 <button class="secondary" id="loginBtn" onclick="openAuth()">Sign in / Register</button>
 <button id="dashBtn" style="display:none" onclick="showDashboard()">My dashboard</button>
+<button id="adminBtn" class="dark" style="display:none" onclick="showAdminDashboard()">Admin moderation</button>
 <button class="secondary" id="logoutBtn" style="display:none" onclick="logout()">Sign out</button>
 </nav></header>
 <section class="hero"><div><div class="eyebrow">GLOBAL EQUIPMENT MARKETPLACE</div>
@@ -83,6 +91,9 @@ footer{background:var(--navy);color:#dce8f3;text-align:center;padding:28px;margi
 <div class="formrow"><button type="submit">Publish listing</button></div></form></div>
 <div class="box"><h3>Your listings</h3><div id="myListings" class="muted">Sign in to manage your listings.</div></div>
 </div><div class="box" style="margin-top:16px"><div class="head"><h3>Enquiries & messages</h3><button class="secondary" type="button" onclick="enableMessageNotifications()">Enable alerts</button></div><p class="muted">Messages about your listings and your replies appear here. <span id="messageAlertStatus">Alerts start when you sign in.</span></p><div id="messageInbox" class="muted">Sign in to view messages.</div></div></section>
+<section class="wrap" id="adminDashboard"><div class="head"><div><h2>Admin moderation</h2><p class="muted">Private report review for authorized EquipMarket administrators.</p></div><button class="secondary" type="button" onclick="loadAdminReports()">Refresh reports</button></div>
+<div class="admin-toolbar"><label for="reportStatusFilter" style="margin:0">Show reports</label><select id="reportStatusFilter" onchange="loadAdminReports()"><option value="pending">Pending</option><option value="reviewing">Reviewing</option><option value="resolved">Resolved</option><option value="dismissed">Dismissed</option><option value="all">All reports</option></select><span class="muted" id="adminReportCount"></span></div>
+<div id="adminReportList" class="muted">Loading moderation reports...</div></section>
 </main>
 <footer><div class="brand">Equip<span>Market</span></div><p>Global equipment trading, made easier.</p><p>Marketplace platform preview</p></footer>
 <div class="modal" id="enquiryModal"><div class="panel"><div class="head"><h2 id="enquiryTitle">Contact seller</h2><button class="secondary" type="button" onclick="closeEnquiry()">Close</button></div><form id="enquiryForm"><input type="hidden" name="listing_id"><input type="hidden" name="recipient_id"><label>Your message</label><textarea name="message" required maxlength="3000" placeholder="Hello, I am interested in this equipment. Is it still available?"></textarea><div class="formrow"><button type="submit">Send enquiry</button></div></form><p class="muted" id="enquiryMsg"></p></div></div>
@@ -93,7 +104,7 @@ footer{background:var(--navy);color:#dce8f3;text-align:center;padding:28px;margi
 /* Add your Supabase project URL and public anon key after creating a project. */
 const SUPABASE_URL = "https://ceddpmvwujfjsfxmakis.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_LoBKOyhhOIPxw834ZpqQSA_D8ffod6m";
-let db=null,user=null,category="All",signup=false;
+let db=null,user=null,category="All",signup=false,isAdmin=false;
 const demo=[
  {id:"d1",title:"Tracked excavator",category:"Construction",price:"Contact seller",location:"Houston, USA",description:"Sample preview listing. Verify seller and machine condition.",image_url:null},
  {id:"d2",title:"Diesel generator set",category:"Industrial",price:"Contact seller",location:"Manchester, UK",description:"Sample preview listing. Request rating and service history.",image_url:null},
@@ -208,20 +219,67 @@ function startMessageNotifications(){
  messagePoller=setInterval(checkForNewMessages,15000);
 }
 
-function init(){if(configured()){db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);db.auth.onAuthStateChange((_e,s)=>{user=s?.user||null;updateNav();startMessageNotifications();});db.auth.getSession().then(({data})=>{user=data.session?.user||null;updateNav();loadListings();startMessageNotifications()})}else{document.getElementById("listingStatus").textContent="Preview mode — connect Supabase to enable real accounts and live listings.";render(demo)}}
-function updateNav(){document.getElementById("loginBtn").style.display=user?"none":"inline-block";document.getElementById("dashBtn").style.display=user?"inline-block":"none";document.getElementById("logoutBtn").style.display=user?"inline-block":"none";if(user)document.getElementById("who").textContent="Signed in as "+user.email; }
+function init(){if(configured()){db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);db.auth.onAuthStateChange((_e,s)=>{user=s?.user||null;isAdmin=false;updateNav();startMessageNotifications();setTimeout(checkAdminAccess,0);});db.auth.getSession().then(({data})=>{user=data.session?.user||null;updateNav();loadListings();startMessageNotifications();checkAdminAccess()})}else{document.getElementById("listingStatus").textContent="Preview mode — connect Supabase to enable real accounts and live listings.";render(demo)}}
+function updateNav(){document.getElementById("loginBtn").style.display=user?"none":"inline-block";document.getElementById("dashBtn").style.display=user?"inline-block":"none";document.getElementById("adminBtn").style.display=user&&isAdmin?"inline-block":"none";document.getElementById("logoutBtn").style.display=user?"inline-block":"none";if(user)document.getElementById("who").textContent="Signed in as "+user.email; }
+async function checkAdminAccess(){
+ isAdmin=false;
+ if(!db||!user){updateNav();return false}
+ const checkedUser=user.id;
+ const {data,error}=await db.from("admin_users").select("user_id").eq("user_id",checkedUser).maybeSingle();
+ if(user?.id!==checkedUser)return false;
+ if(error){console.warn("Admin access check:",error.message);updateNav();return false}
+ isAdmin=!!data;updateNav();return isAdmin;
+}
 function openAuth(){document.getElementById("authModal").classList.add("open")}
 function closeAuth(){document.getElementById("authModal").classList.remove("open")}
 function toggleAuth(){signup=!signup;document.getElementById("authTitle").textContent=signup?"Create account":"Sign in";document.getElementById("authSubmit").textContent=signup?"Register":"Sign in"}
 async function requireLogin(){if(!user){openAuth();return}showDashboard()}
-async function logout(){if(db)await db.auth.signOut();user=null;if(messagePoller)clearInterval(messagePoller);messagePoller=null;notificationUserId=null;knownIncomingMessageIds=new Set();notificationBaselineLoaded=false;updateNav();document.getElementById("dashboard").style.display="none"}
-document.getElementById("authForm").addEventListener("submit",async e=>{e.preventDefault();if(!db){alert("Database not connected yet. Follow SETUP.md to connect a free Supabase project.");return}let f=Object.fromEntries(new FormData(e.target));let r=signup?await db.auth.signUp({email:f.email,password:f.password}):await db.auth.signInWithPassword({email:f.email,password:f.password});document.getElementById("authMsg").textContent=r.error?r.error.message:(signup?"Check your email to confirm your account.":"Signed in.");if(!r.error&&!signup)closeAuth()});
+async function logout(){if(db)await db.auth.signOut();user=null;if(messagePoller)clearInterval(messagePoller);messagePoller=null;notificationUserId=null;knownIncomingMessageIds=new Set();notificationBaselineLoaded=false;isAdmin=false;updateNav();document.getElementById("dashboard").style.display="none";document.getElementById("adminDashboard").style.display="none"}
+document.getElementById("authForm").addEventListener("submit",async e=>{e.preventDefault();if(!db){alert("Database not connected yet. Follow SETUP.md to connect a free Supabase project.");return}let f=Object.fromEntries(new FormData(e.target));let r=signup?await db.auth.signUp({email:f.email,password:f.password}):await db.auth.signInWithPassword({email:f.email,password:f.password});document.getElementById("authMsg").textContent=r.error?r.error.message:(signup?"Check your email to confirm your account.":"Signed in.");if(!r.error&&!signup){closeAuth();setTimeout(checkAdminAccess,0)}});
 function setCat(c,b){category=c;document.querySelectorAll(".filters button").forEach(x=>x.classList.remove("active"));b.classList.add("active");loadListings()}
 async function loadListings(){if(!db){let q=(document.getElementById("q").value||"").toLowerCase();render(demo.filter(x=>(category==="All"||x.category===category)&&JSON.stringify(x).toLowerCase().includes(q)));return}
 let query=db.from("listings").select("id,title,category,price,currency,country,city,description,status,created_at").eq("status","active").order("created_at",{ascending:false}).limit(60);if(category!=="All")query=query.eq("category",category);let q=document.getElementById("q").value.trim();if(q)query=query.or(`title.ilike.%${q}%,city.ilike.%${q}%,country.ilike.%${q}%,description.ilike.%${q}%`);let {data,error}=await query;if(error){document.getElementById("listingStatus").textContent="Could not load listings: "+error.message;return}document.getElementById("listingStatus").textContent=data.length+" live listing(s)";render(data)}
 function render(items){document.getElementById("grid").innerHTML=items.length?items.map(x=>`<article class="card"><div class="photo">🏭</div><div class="body"><div class="tag">${safe(x.category)}</div><h3>${safe(x.title)}</h3><div class="muted">📍 ${safe([x.city,x.country].filter(Boolean).join(", "))}</div><p class="muted">${safe(x.description||"")}</p><div class="price">${safe(x.currency||"")} ${safe(x.price??"Contact seller")}</div><button onclick="enquire('${x.id}')">Enquire</button><button class="report-button" onclick="openReport('${x.id}',this)">Report listing</button></div></article>`).join(""):"<p class='muted'>No listings found.</p>"}
 function safe(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function showDashboard(){document.getElementById("dashboard").style.display="block";document.getElementById("dashboard").scrollIntoView({behavior:"smooth"});loadMine();loadMessages()}
+function showDashboard(){document.getElementById("adminDashboard").style.display="none";document.getElementById("dashboard").style.display="block";document.getElementById("dashboard").scrollIntoView({behavior:"smooth"});loadMine();loadMessages()}
+async function showAdminDashboard(){
+ const allowed=await checkAdminAccess();
+ if(!allowed){alert("This account is not authorized to access admin moderation.");return}
+ document.getElementById("dashboard").style.display="none";
+ document.getElementById("adminDashboard").style.display="block";
+ document.getElementById("adminDashboard").scrollIntoView({behavior:"smooth"});
+ await loadAdminReports();
+}
+async function loadAdminReports(){
+ const box=document.getElementById("adminReportList");
+ if(!box)return;
+ if(!db||!user){box.textContent="Please sign in with an authorized admin account.";return}
+ const allowed=await checkAdminAccess();
+ if(!allowed){box.textContent="Admin access is not enabled for this account.";return}
+ box.textContent="Loading reports...";
+ const filter=document.getElementById("reportStatusFilter")?.value||"pending";
+ let query=db.from("listing_reports").select("id,listing_id,reporter_id,reason,details,status,created_at,listings(title,category,price,currency,city,country,status)").order("created_at",{ascending:false}).limit(200);
+ if(filter!=="all")query=query.eq("status",filter);
+ const {data,error}=await query;
+ if(error){box.textContent="Could not load reports: "+error.message;document.getElementById("adminReportCount").textContent="";return}
+ const rows=data||[];
+ document.getElementById("adminReportCount").textContent=rows.length+" report(s)";
+ if(!rows.length){box.textContent="No reports in this view.";return}
+ box.innerHTML=rows.map(r=>{
+  const listing=r.listings||{};
+  const location=[listing.city,listing.country].filter(Boolean).join(", ");
+  const date=r.created_at?new Date(r.created_at).toLocaleString():"Date unavailable";
+  return `<article class="report-card"><div class="report-top"><b>${safe(listing.title||"Listing no longer available")}</b><span class="tag">${safe(r.status)}</span></div><div class="report-meta"><b>Reason:</b> ${safe(r.reason)}<br><b>Listing:</b> ${safe(listing.category||"Unknown category")} · ${safe(location||"Location unavailable")}<br><b>Price:</b> ${safe(listing.currency||"")} ${safe(listing.price??"Not available")}<br><b>Reported:</b> ${safe(date)}<br><b>Report ID:</b> ${safe(r.id)}<br><b>Reporter ID:</b> ${safe(r.reporter_id)}</div><p>${safe(r.details||"No additional details provided.")}</p><div class="report-actions"><label for="status-${safe(r.id)}" style="margin:0">Update status</label><select id="status-${safe(r.id)}"><option value="pending" ${r.status==="pending"?"selected":""}>Pending</option><option value="reviewing" ${r.status==="reviewing"?"selected":""}>Reviewing</option><option value="resolved" ${r.status==="resolved"?"selected":""}>Resolved</option><option value="dismissed" ${r.status==="dismissed"?"selected":""}>Dismissed</option></select><button type="button" onclick="saveReportStatus('${r.id}')">Save status</button></div></article>`;
+ }).join("");
+}
+async function saveReportStatus(reportId){
+ if(!db||!user||!await checkAdminAccess()){alert("Admin access required.");return}
+ const select=document.getElementById("status-"+reportId);
+ if(!select)return;
+ const {error}=await db.from("listing_reports").update({status:select.value}).eq("id",reportId);
+ if(error){alert("Could not update report: "+error.message);return}
+ await loadAdminReports();
+}
 async function loadMessages(){
  const box=document.getElementById("messageInbox");
  if(!db||!user){box.textContent="Sign in to view messages.";return}
