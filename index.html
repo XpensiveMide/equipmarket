@@ -132,6 +132,7 @@ footer{background:var(--navy);color:#dce8f3;text-align:center;padding:28px;margi
 const SUPABASE_URL = "https://ceddpmvwujfjsfxmakis.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_LoBKOyhhOIPxw834ZpqQSA_D8ffod6m";
 let db=null,user=null,category="All",signup=false,isAdmin=false;
+let verifiedSellerIds = new Set();
 const demo=[
  {id:"d1",title:"Tracked excavator",category:"Construction",price:"Contact seller",location:"Houston, USA",description:"Sample preview listing. Verify seller and machine condition.",image_url:null},
  {id:"d2",title:"Diesel generator set",category:"Industrial",price:"Contact seller",location:"Manchester, UK",description:"Sample preview listing. Request rating and service history.",image_url:null},
