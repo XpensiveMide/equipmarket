@@ -512,6 +512,73 @@ function changeListingPhoto(button){
 
   button.classList.add("active");
 }
+  function openListingGallery(imageUrls, startIndex = 0){
+  const images = imageUrls.filter(url =>
+    typeof url === "string" && /^https:\/\//i.test(url)
+  );
+
+  if(!images.length) return;
+
+  let currentIndex = Math.max(0, Math.min(startIndex, images.length - 1));
+
+  const overlay = document.createElement("div");
+  overlay.className = "gallery-overlay";
+
+  overlay.innerHTML = `
+    <button class="gallery-close" aria-label="Close">&times;</button>
+    <button class="gallery-prev" aria-label="Previous photo">&#10094;</button>
+    <img class="gallery-viewer-image" alt="Equipment photo">
+    <button class="gallery-next" aria-label="Next photo">&#10095;</button>
+    <div class="gallery-counter"></div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const image = overlay.querySelector(".gallery-viewer-image");
+  const counter = overlay.querySelector(".gallery-counter");
+
+  function showPhoto(){
+    image.src = images[currentIndex];
+    counter.textContent = `${currentIndex + 1} / ${images.length}`;
+  }
+
+  function closeGallery(){
+    overlay.remove();
+  }
+
+  function nextPhoto(){
+    currentIndex = (currentIndex + 1) % images.length;
+    showPhoto();
+  }
+
+  function previousPhoto(){
+    currentIndex = (currentIndex - 1 + images.length) % images.length;
+    showPhoto();
+  }
+
+  overlay.querySelector(".gallery-close").onclick = closeGallery;
+  overlay.querySelector(".gallery-next").onclick = nextPhoto;
+  overlay.querySelector(".gallery-prev").onclick = previousPhoto;
+
+  let touchStartX = 0;
+
+  image.addEventListener("touchstart", event => {
+    touchStartX = event.changedTouches[0].screenX;
+  });
+
+  image.addEventListener("touchend", event => {
+    const difference = event.changedTouches[0].screenX - touchStartX;
+    if(Math.abs(difference) > 45){
+      difference < 0 ? nextPhoto() : previousPhoto();
+    }
+  });
+
+  overlay.onclick = event => {
+    if(event.target === overlay) closeGallery();
+  };
+
+  showPhoto();
+}
   const card = button.closest(".card");
   const mainImage = card.querySelector(".listing-main-photo");
 
