@@ -926,7 +926,7 @@ ${(listings||[]).map(x=>{
         <div class="tag">${safe(x.category)}</div>
         <h3>${safe(x.title)}</h3>
         <p class="muted">${safe([x.city,x.country].filter(Boolean).join(", "))}</p>
-        <p>${safe(x.description||"")}</p>
+      <div class="description-content">${formatDescription(x.description)}</div>
         <div class="price">${safe(x.currency||"")} ${safe(x.price??"Contact seller")}</div>
         <button onclick="enquire('${x.id}')">Enquire</button>
       </div>
