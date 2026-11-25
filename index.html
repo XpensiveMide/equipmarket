@@ -235,6 +235,155 @@ label{display:block;font-size:13px;font-weight:bold;margin:12px 0 5px}input,sele
 footer{background:var(--navy);color:#dce8f3;text-align:center;padding:28px;margin-top:50px;font-size:13px}
 @media(max-width:760px){.grid,.categories{grid-template-columns:repeat(2,1fr)}.dashgrid{grid-template-columns:1fr}}
 @media(max-width:520px){.grid,.categories{grid-template-columns:1fr}.search{flex-direction:column}.search button{width:100%}header{padding:15px 18px}.hero{padding:45px 20px}}
+
+/* EQUIPMARKET SELLER STOREFRONT */
+.em-storefront{
+  background:#fff;
+  border:1px solid #e3e9f0;
+  border-radius:16px;
+  overflow:hidden;
+  margin:18px 0;
+  box-shadow:0 5px 22px rgba(16,27,42,.08);
+}
+
+.em-cover{
+  min-height:190px;
+  padding:28px 22px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  background:linear-gradient(120deg,#101b2a,#183d5c);
+  color:#fff;
+  position:relative;
+  overflow:hidden;
+}
+
+.em-cover:after{
+  content:"⚙️";
+  position:absolute;
+  right:20px;
+  bottom:-28px;
+  font-size:145px;
+  opacity:.12;
+}
+
+.em-cover h2{
+  color:#fff;
+  font-size:27px;
+  margin:0 0 8px;
+  position:relative;
+  z-index:1;
+}
+
+.em-cover p{
+  color:#e5edf5;
+  margin:0;
+  position:relative;
+  z-index:1;
+}
+
+.em-cover-tag{
+  color:#f5c542;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:1px;
+  margin-bottom:12px;
+  position:relative;
+  z-index:1;
+}
+
+.em-profile{
+  padding:0 22px 22px;
+}
+
+.em-profile-top{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin-top:-34px;
+  position:relative;
+  flex-wrap:wrap;
+}
+
+.em-avatar{
+  width:76px;
+  height:76px;
+  flex-shrink:0;
+  border:4px solid #fff;
+  border-radius:50%;
+  background:#f5c542;
+  color:#101b2a;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:27px;
+  font-weight:900;
+}
+
+.em-profile-name{
+  padding-top:35px;
+  flex:1;
+  min-width:150px;
+}
+
+.em-profile-name h3{
+  margin:0 0 5px;
+  color:#101b2a;
+}
+
+.em-profile-name p{
+  margin:0;
+  color:#64748b;
+  font-size:13px;
+}
+
+.em-profile-info{
+  line-height:1.7;
+  color:#475569;
+  margin:18px 0;
+}
+
+.em-stats{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:9px;
+  margin:18px 0;
+}
+
+.em-stat{
+  background:#f5f8fb;
+  border:1px solid #e5ebf1;
+  border-radius:10px;
+  padding:13px 8px;
+  text-align:center;
+}
+
+.em-stat strong{
+  display:block;
+  color:#101b2a;
+  font-size:19px;
+}
+
+.em-stat span{
+  display:block;
+  color:#64748b;
+  font-size:11px;
+  margin-top:4px;
+}
+
+.em-section-title{
+  margin:25px 0 14px;
+  color:#101b2a;
+  font-size:20px;
+}
+
+@media(max-width:520px){
+  .em-cover{min-height:165px}
+  .em-cover h2{font-size:23px}
+  .em-stats{gap:6px}
+  .em-stat{padding:11px 4px}
+}
+
 </style>
 </head>
 <body>
