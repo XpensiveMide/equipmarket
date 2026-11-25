@@ -1351,49 +1351,90 @@ document.getElementById("profileCity").value=data.city||"";
 document.getElementById("profilePhone").value=data.phone||"";
 document.getElementById("profileWebsite").value=data.website||"";
 document.getElementById("profileBio").value=data.bio||"";
-async function loadMine() {
-  if (!db || !user) {
-    document.getElementById("myListings").textContent =
-      "Connect database and sign in.";
+
+async function loadSellerProfile(){
+
+  if(!db||!user)return;
+
+  const {data,error}=await db.from("profiles")
+    .select("business_name,seller_type,country,city,phone,website,bio")
+    .eq("id",user.id).maybeSingle();
+
+  if(error){
+    console.error("Profile loading error:",error.message);
     return;
   }
 
-  let { data, error } = await db.from("listings")
-    .select("id,title,status,price,currency,category,country,city,description,image_urls")
-    .eq("seller_id", user.id)
-    .order("created_at", { ascending: false });
+  if(!data)return;
 
-  document.getElementById("myListings").innerHTML =
+  document.getElementById("profileBusinessName").value=data.business_name||"";
+  document.getElementById("profileSellerType").value=data.seller_type||"Individual";
+  document.getElementById("profileCountry").value=data.country||"";
+  document.getElementById("profileCity").value=data.city||"";
+  document.getElementById("profilePhone").value=data.phone||"";
+  document.getElementById("profileWebsite").value=data.website||"";
+  document.getElementById("profileBio").value=data.bio||"";
+}
+
+document.getElementById("sellerProfileForm").addEventListener("submit",async e=>{
+
+  e.preventDefault();
+
+  if(!db||!user){
+    alert("Please sign in first.");
+    return;
+  }
+
+  const profile={
+    id:user.id,
+    email:user.email,
+    business_name:document.getElementById("profileBusinessName").value.trim(),
+    seller_type:document.getElementById("profileSellerType").value,
+    country:document.getElementById("profileCountry").value.trim(),
+    city:document.getElementById("profileCity").value.trim(),
+    phone:document.getElementById("profilePhone").value.trim(),
+    website:document.getElementById("profileWebsite").value.trim(),
+    bio:document.getElementById("profileBio").value.trim()
+  };
+
+  const status=document.getElementById("profileStatus");
+  status.textContent="Saving profile...";
+
+  const {error}=await db.from("profiles").upsert(profile,{onConflict:"id"});
+
+  if(error){
+    status.textContent="Could not save: "+error.message;
+    return;
+  }
+
+  status.textContent="Your public seller profile has been saved successfully!";
+});
+
+async function loadMine(){
+
+  if(!db||!user){
+    document.getElementById("myListings").textContent="Connect database and sign in.";
+    return;
+  }
+
+  const {data,error}=await db.from("listings")
+    .select("id,title,status,price,currency,category,country,city,description,image_urls")
+    .eq("seller_id",user.id)
+    .order("created_at",{ascending:false});
+
+  document.getElementById("myListings").innerHTML=
     error ? safe(error.message) :
-    data.length ? data.map(x => `
+    data.length ? data.map(x=>`
       <p>
         <b>${safe(x.title)}</b><br>
-        ${safe(x.price)} ${safe(x.currency || "")} · ${safe(x.status)}
+        ${safe(x.price)} ${safe(x.currency||"")} · ${safe(x.status)}
         <button class="secondary" onclick="editListing('${x.id}')">Edit</button>
         <button class="secondary" onclick="removeListing('${x.id}')">Delete</button>
       </p>
     `).join("") :
     "You have not published any listings yet.";
 }
-e.preventDefault();
-if(!db||!user){alert("Please sign in first.");return}
-const profile={
-id:user.id,
-email:user.email,
-business_name:document.getElementById("profileBusinessName").value.trim(),
-seller_type:document.getElementById("profileSellerType").value,
-country:document.getElementById("profileCountry").value.trim(),
-city:document.getElementById("profileCity").value.trim(),
-phone:document.getElementById("profilePhone").value.trim(),
-website:document.getElementById("profileWebsite").value.trim(),
-bio:document.getElementById("profileBio").value.trim()
-};
-const status=document.getElementById("profileStatus");
-status.textContent="Saving profile...";
-const {error}=await db.from("profiles").upsert(profile,{onConflict:"id"});
-if(error){status.textContent="Could not save: "+error.message;return}
-status.textContent="Your public seller profile has been saved successfully!";
-});
+
 
 document.getElementById("newListing").addEventListener("submit", async e => {
   e.preventDefault();
