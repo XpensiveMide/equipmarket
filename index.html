@@ -783,6 +783,10 @@ function render(items){
 
 
 async function viewSellerProfile(sellerId){
+  if(!db || !sellerId || sellerId==="undefined"){
+  alert("Seller profiles are available when EquipMarket is connected to the database.");
+  return;
+}
 const profileSection=document.getElementById("publicSellerProfile");
 const grid=document.getElementById("grid");
 
