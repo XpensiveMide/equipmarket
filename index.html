@@ -838,7 +838,7 @@ function render(items){
         ${verifiedSellerIds.has(x.seller_id)?'<span class="verified-badge">✓ Verified Seller</span>':''}
         <h3>${safe(x.title)}</h3>
         <div class="muted">📍 ${safe([x.city,x.country].filter(Boolean).join(", "))}</div>
-        <p class="muted">${safe(x.description||"")}</p>
+        <div class="description-content compact-description">${formatDescription(x.description)}</div>
         <div class="price">${safe(x.currency||"")} ${safe(x.price??"Contact seller")}</div>
         <button onclick="viewSellerProfile('${x.seller_id}')">View Seller Profile</button>
         <button onclick="enquire('${x.id}')">Enquire</button>
