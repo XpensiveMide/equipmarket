@@ -642,15 +642,15 @@ function render(items){
       : [];
 
     const gallery=photos.length
-      ? `<div class="listing-gallery">
-          <img class="listing-main-photo" src="${safe(photos[0])}" alt="${safe(x.title)}" loading="lazy" onclick="openListingGallery(${JSON.stringify(photos).replace(/"/g,'&quot;')},0)" onerror="this.style.display='none';this.parentElement.textContent='🏭';"> alt="${safe(x.title)}" loading="lazy" onerror="this.style.display='none';this.parentElement.textContent='🏭';">
-          ${photos.length>1?`<div class="photo-thumbnails">${photos.map((url,i)=>`
-            <button type="button" class="photo-thumb ${i===0?'active':''}" data-src="${safe(url)}" onclick="changeListingPhoto(this)">
-              <img src="${safe(url)}" alt="Equipment photo ${i+1}">
-            </button>
-          `).join("")}</div>`:""}
-        </div>`
-      : `<div class="photo">🏭</div>`;
+  ? `<div class="listing-gallery">
+      <img class="listing-main-photo" src="${safe(photos[0])}" alt="${safe(x.title)}" loading="lazy" onclick="openListingGallery(${JSON.stringify(photos).replace(/"/g,'&quot;')},0)" onerror="this.style.display='none';this.parentElement.textContent='🏭';">
+      ${photos.length>1?`<div class="photo-thumbnails">${photos.map((url,i)=>`
+        <button type="button" class="photo-thumb ${i===0?'active':''}" data-src="${safe(url)}" onclick="changeListingPhoto(this)">
+          <img src="${safe(url)}" alt="Equipment photo ${i+1}">
+        </button>
+      `).join("")}</div>`:""}
+    </div>`
+  : `<div class="photo">🏭</div>`;
 
     return `<article class="card">
       ${gallery}
