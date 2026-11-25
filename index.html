@@ -873,13 +873,7 @@ function closeSellerProfile(){
 document.getElementById("publicSellerProfile").style.display="none";
 document.getElementById("grid").style.display="grid";
 }
-
-
-
-function closeSellerProfile(){
-document.getElementById("publicSellerProfile").style.display="none";
-document.getElementById("grid").style.display="grid";
-}
+  
 function safe(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function showDashboard(){document.getElementById("adminDashboard").style.display="none";document.getElementById("dashboard").style.display="block";document.getElementById("dashboard").scrollIntoView({behavior:"smooth"});loadMine();loadMessages();loadSellerVerification();loadSellerProfile()}
 async function showAdminDashboard(){
