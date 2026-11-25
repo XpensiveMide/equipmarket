@@ -539,17 +539,57 @@ async function checkAdminAccess(){
  if(error){console.warn("Admin access check:",error.message);updateNav();return false}
  isAdmin=!!data;updateNav();return isAdmin;
 }
-function openAuth(){document.getElementById("authModal").classList.add("open")}
-function closeAuth(){document.getElementById("authModal").classList.remove("open")}
-function toggleAuth(){signup=!signup;document.getElementById("authTitle").textContent=signup?"Create account":"Sign in";document.getElementById("authSubmit").textContent=signup?"Register":"Sign in"}
-async function requireLogin(){if(!user){openAuth();return}showDashboard()}
-async function logout(){if(db)await db.auth.signOut();user=null;if(messagePoller)clearInterval(messagePoller);messagePoller=null;notificationUserId=null;knownIncomingMessageIds=new Set();notificationBaselineLoaded=false;isAdmin=false;updateNav();document.getElementById("dashboard").style.display="none";document.getElementById("adminDashboard").style.display="none"}
-document.getElementById("authForm").addEventListener("submit",async e=>{e.preventDefault();if(!db){alert("Database not connected yet. Follow SETUP.md to connect a free Supabase project.");return}let f=Object.fromEntries(new FormData(e.target));let r=signup?await db.auth.signUp({email:f.email,password:f.password}):await db.auth.signInWithPassword({email:f.email,password:f.password});document.getElementById("authMsg").textContent=r.error?r.error.message:(signup?"Check your email to confirm your account.":"Signed in.");if(!r.error&&!signup){closeAuth();setTimeout(checkAdminAccess,0)}});
-function setCat(c,b){category=c;document.querySelectorAll(".filters button").forEach(x=>x.classList.remove("active"));b.classList.add("active");loadListings()}
-async function loadListings(){if(!db){let q=(document.getElementById("q").value||"").toLowerCase();render(demo.filter(x=>(category==="All"||x.category===category)&&JSON.stringify(x).toLowerCase().includes(q)));return}
-let query=db.from("listings").select("id,title,category,price,currency,country,city,description,status,created_at,seller_id,image_urls").eq("status","active").order("created_at",{ascending:false}).limit(60);if(category!=="All")query=query.eq("category",category);let q=document.getElementById("q").value.trim();if(q)query=query.or(`title.ilike.%${q}%,city.ilike.%${q}%,country.ilike.%${q}%,description.ilike.%${q}%`);let {data,error}=await query;const {data: verifiedRows,error: verifiedError}=await db.from("verified_sellers").select("seller_id");
-verifiedSellerIds=new Set(verifiedRows||[]);
-verifiedSellerIds=new Set((verifiedRows||[]).map(x=>x.seller_id));if(error){document.getElementById("listingStatus").textContent="Could not load listings: "+error.message;return}document.getElementById("listingStatus").textContent=data.length+" live listing(s)";render(data)}
+
+async function loadListings(){
+  if(!db){
+    let q=(document.getElementById("q").value||"").toLowerCase();
+    render(demo.filter(x=>
+      (category==="All"||x.category===category)&&
+      JSON.stringify(x).toLowerCase().includes(q)
+    ));
+    return;
+  }
+
+  let query=db.from("listings")
+    .select("id,title,category,price,currency,country,city,description,status,created_at,seller_id,image_urls")
+    .eq("status","active")
+    .order("created_at",{ascending:false})
+    .limit(60);
+
+  if(category!=="All") query=query.eq("category",category);
+
+  let q=document.getElementById("q").value.trim();
+
+  if(q){
+    query=query.or(`title.ilike.%${q}%,city.ilike.%${q}%,country.ilike.%${q}%,description.ilike.%${q}%`);
+  }
+
+  let {data,error}=await query;
+
+  const {data:verifiedRows,error:verifiedError}=await db
+    .from("verified_sellers")
+    .select("seller_id");
+
+  verifiedSellerIds=verifiedError
+    ? new Set()
+    : new Set((verifiedRows||[]).map(x=>x.seller_id));
+
+  if(verifiedError){
+    console.warn("Could not load verified sellers:",verifiedError.message);
+  }
+
+  if(error){
+    document.getElementById("listingStatus").textContent=
+      "Could not load listings: "+error.message;
+    return;
+  }
+
+  document.getElementById("listingStatus").textContent=
+    data.length+" live listing(s)";
+
+  render(data);
+}
+
 
 function changeListingPhoto(button){
   const card = button.closest(".card");
