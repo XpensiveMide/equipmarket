@@ -942,6 +942,78 @@ document.getElementById("grid").style.display="grid";
 }
   
 function safe(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+  function formatDescription(value){
+  const lines=String(value||"")
+    .split(/\r?\n/)
+    .map(line=>line.trim())
+    .filter(Boolean);
+
+  if(!lines.length){
+    return "<p>No description provided.</p>";
+  }
+
+  const headings=[
+    "Product overview",
+    "Main specifications",
+    "Technical specifications",
+    "Hydraulic and mechanical components",
+    "Chassis and accessories",
+    "Features",
+    "Condition",
+    "Additional information"
+  ];
+
+  let html="";
+  let bullets=[];
+  let specs=[];
+
+  function flush(){
+    if(specs.length){
+      html+='<div class="spec-grid">'+specs.map(item=>
+        `<div class="spec-item">
+          <span class="spec-label">${safe(item[0])}</span>
+          <span class="spec-value">${safe(item[1])}</span>
+        </div>`
+      ).join("")+'</div>';
+      specs=[];
+    }
+
+    if(bullets.length){
+      html+='<ul class="description-bullets">'+bullets.map(item=>
+        `<li>${safe(item)}</li>`
+      ).join("")+'</ul>';
+      bullets=[];
+    }
+  }
+
+  for(const line of lines){
+    const heading=headings.find(h=>
+      line.replace(/:$/,"").toLowerCase()===h.toLowerCase()
+    );
+
+    if(heading){
+      flush();
+      html+=`<h4>${safe(heading)}</h4>`;
+      continue;
+    }
+
+    const clean=line.replace(/^[-*•]\s*/,"");
+    const parts=clean.match(/^([^:]{2,60}):\s*(.+)$/);
+
+    if(parts){
+      flush();
+      specs.push([parts[1],parts[2]]);
+    }else if(/^[-*•]\s*/.test(line)){
+      bullets.push(clean);
+    }else{
+      flush();
+      html+=`<p>${safe(line)}</p>`;
+    }
+  }
+
+  flush();
+  return html;
+}
 function showDashboard(){document.getElementById("adminDashboard").style.display="none";document.getElementById("dashboard").style.display="block";document.getElementById("dashboard").scrollIntoView({behavior:"smooth"});loadMine();loadMessages();loadSellerVerification();loadSellerProfile()}
 async function showAdminDashboard(){
  const allowed=await checkAdminAccess();
