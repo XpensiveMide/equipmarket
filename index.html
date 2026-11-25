@@ -455,6 +455,21 @@ let query=db.from("listings").select("id,title,category,price,currency,country,c
 verifiedSellerIds=new Set(verifiedRows||[]);
 verifiedSellerIds=new Set((verifiedRows||[]).map(x=>x.seller_id));if(error){document.getElementById("listingStatus").textContent="Could not load listings: "+error.message;return}document.getElementById("listingStatus").textContent=data.length+" live listing(s)";render(data)}
 
+function changeListingPhoto(button){
+  const card = button.closest(".card");
+  const mainImage = card.querySelector(".listing-main-photo");
+
+  if(!mainImage) return;
+
+  mainImage.src = button.dataset.src;
+
+  card.querySelectorAll(".photo-thumb").forEach(thumb => {
+    thumb.classList.remove("active");
+  });
+
+  button.classList.add("active");
+}
+
 function render(items){
   document.getElementById("grid").innerHTML=items.length?items.map(x=>{
     const photoUrl=Array.isArray(x.image_urls)?x.image_urls[0]:"";
