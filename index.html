@@ -965,7 +965,7 @@ function formatDescription(value){
   for(const heading of headings){
     const pattern=new RegExp(
       "(^|\\s)("+heading.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")(\\s|:)",
-      "gi"
+    heading==="Features"?"g":"gi"
     );
 
     text=text.replace(pattern,(match,before,title,after)=>
