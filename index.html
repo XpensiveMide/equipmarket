@@ -470,15 +470,26 @@ function changeListingPhoto(button){
   button.classList.add("active");
 }
 
+
 function render(items){
   document.getElementById("grid").innerHTML=items.length?items.map(x=>{
-    const photoUrl=Array.isArray(x.image_urls)?x.image_urls[0]:"";
-const safePhoto=photoUrl&&/^https:\/\//i.test(photoUrl)
-  ? `<img src="${safe(photoUrl)}" alt="${safe(x.title)}" loading="lazy" onerror="this.style.display='none';this.parentElement.textContent='🏭';" style="display:block;width:100%;height:190px;object-fit:cover;">`
-  : "🏭";
+    const photos=Array.isArray(x.image_urls)
+      ? x.image_urls.filter(url=>typeof url==="string"&&/^https:\/\//i.test(url)).slice(0,5)
+      : [];
+
+    const gallery=photos.length
+      ? `<div class="listing-gallery">
+          <img class="listing-main-photo" src="${safe(photos[0])}" alt="${safe(x.title)}" loading="lazy" onerror="this.style.display='none';this.parentElement.textContent='🏭';">
+          ${photos.length>1?`<div class="photo-thumbnails">${photos.map((url,i)=>`
+            <button type="button" class="photo-thumb ${i===0?'active':''}" data-src="${safe(url)}" onclick="changeListingPhoto(this)">
+              <img src="${safe(url)}" alt="Equipment photo ${i+1}">
+            </button>
+          `).join("")}</div>`:""}
+        </div>`
+      : `<div class="photo">🏭</div>`;
 
     return `<article class="card">
-      <div class="photo">${safePhoto}</div>
+      ${gallery}
       <div class="body">
         <div class="tag">${safe(x.category)}</div>
         ${verifiedSellerIds.has(x.seller_id)?'<span class="verified-badge">✓ Verified Seller</span>':''}
@@ -493,6 +504,7 @@ const safePhoto=photoUrl&&/^https:\/\//i.test(photoUrl)
     </article>`;
   }).join(""):"<p class='muted'>No listings found.</p>";
 }
+
 
 async function viewSellerProfile(sellerId){
 const profileSection=document.getElementById("publicSellerProfile");
