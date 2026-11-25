@@ -440,8 +440,31 @@ async function loadListings(){if(!db){let q=(document.getElementById("q").value|
 let query=db.from("listings").select("id,title,category,price,currency,country,city,description,status,created_at,seller_id,image_urls").eq("status","active").order("created_at",{ascending:false}).limit(60);if(category!=="All")query=query.eq("category",category);let q=document.getElementById("q").value.trim();if(q)query=query.or(`title.ilike.%${q}%,city.ilike.%${q}%,country.ilike.%${q}%,description.ilike.%${q}%`);let {data,error}=await query;const {data: verifiedRows,error: verifiedError}=await db.from("verified_sellers").select("seller_id");
 verifiedSellerIds=new Set(verifiedRows||[]);
 verifiedSellerIds=new Set((verifiedRows||[]).map(x=>x.seller_id));if(error){document.getElementById("listingStatus").textContent="Could not load listings: "+error.message;return}document.getElementById("listingStatus").textContent=data.length+" live listing(s)";render(data)}
-function render(items){document.getElementById("grid").innerHTML=items.length?items.map(x=>`<article class="card"><div class="photo">🏭</div><div class="body"><div class="tag">${safe(x.category)}</div>${verifiedSellerIds.has(x.seller_id)?'<span class="verified-badge">✓ Verified Seller</span>':''}<h3>${safe(x.title)}</h3><div class="muted">📍 ${safe([x.city,x.country].filter(Boolean).join(", "))}</div><p class="muted">${safe(x.description||"")}</p><div class="price">${safe(x.currency||"")} ${safe(x.price??"Contact seller")}</div><button onclick="viewSellerProfile('${x.seller_id}')">View Seller Profile</button>
-<button onclick="enquire('${x.id}')">Enquire</button><button class="report-button" onclick="openReport('${x.id}',this)">Report listing</button></div></article>`).join(""):"<p class='muted'>No listings found.</p>"}
+
+function render(items){
+  document.getElementById("grid").innerHTML=items.length?items.map(x=>{
+    const photoUrl=Array.isArray(x.image_urls)?x.image_urls[0]:"";
+    const safePhoto=photoUrl&&/^https:\/\//i.test(photoUrl)
+      ? `<img src="${safe(photoUrl)}" alt="${safe(x.title)}" loading="lazy" style="width:100%;height:190px;object-fit:cover;">`
+      : "🏭";
+
+    return `<article class="card">
+      <div class="photo">${safePhoto}</div>
+      <div class="body">
+        <div class="tag">${safe(x.category)}</div>
+        ${verifiedSellerIds.has(x.seller_id)?'<span class="verified-badge">✓ Verified Seller</span>':''}
+        <h3>${safe(x.title)}</h3>
+        <div class="muted">📍 ${safe([x.city,x.country].filter(Boolean).join(", "))}</div>
+        <p class="muted">${safe(x.description||"")}</p>
+        <div class="price">${safe(x.currency||"")} ${safe(x.price??"Contact seller")}</div>
+        <button onclick="viewSellerProfile('${x.seller_id}')">View Seller Profile</button>
+        <button onclick="enquire('${x.id}')">Enquire</button>
+        <button class="report-button" onclick="openReport('${x.id}',this)">Report listing</button>
+      </div>
+    </article>`;
+  }).join(""):"<p class='muted'>No listings found.</p>";
+}
+
 async function viewSellerProfile(sellerId){
 const profileSection=document.getElementById("publicSellerProfile");
 const grid=document.getElementById("grid");
