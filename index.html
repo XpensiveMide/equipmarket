@@ -512,6 +512,19 @@ function changeListingPhoto(button){
 
   button.classList.add("active");
 }
+  const card = button.closest(".card");
+  const mainImage = card.querySelector(".listing-main-photo");
+
+  if(!mainImage) return;
+
+  mainImage.src = button.dataset.src;
+
+  card.querySelectorAll(".photo-thumb").forEach(thumb => {
+    thumb.classList.remove("active");
+  });
+
+  button.classList.add("active");
+}
 
 
 function render(items){
