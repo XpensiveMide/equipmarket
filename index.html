@@ -461,7 +461,7 @@ return;
 }
 
 const {data:listings}=await db.from("listings")
-.select("id,title,category,price,currency,country,city,description")
+.select("id,title,category,price,currency,country,city,description,image_urls")
 .eq("seller_id",sellerId)
 .eq("status","active");
 
