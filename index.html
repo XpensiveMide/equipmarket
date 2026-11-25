@@ -599,7 +599,77 @@ function setCat(c,b){
   b.classList.add("active");
   loadListings();
 }
+function openAuth(){
+  document.getElementById("authModal").classList.add("open");
+}
 
+function closeAuth(){
+  document.getElementById("authModal").classList.remove("open");
+}
+
+function toggleAuth(){
+  signup=!signup;
+  document.getElementById("authTitle").textContent=signup?"Create account":"Sign in";
+  document.getElementById("authSubmit").textContent=signup?"Register":"Sign in";
+}
+
+async function requireLogin(){
+  if(!user){
+    openAuth();
+    return;
+  }
+  showDashboard();
+}
+
+async function logout(){
+  if(db) await db.auth.signOut();
+  user=null;
+
+  if(messagePoller) clearInterval(messagePoller);
+  messagePoller=null;
+  notificationUserId=null;
+  knownIncomingMessageIds=new Set();
+  notificationBaselineLoaded=false;
+  isAdmin=false;
+
+  updateNav();
+  document.getElementById("dashboard").style.display="none";
+  document.getElementById("adminDashboard").style.display="none";
+}
+
+document.getElementById("authForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+
+  if(!db){
+    alert("Database not connected yet. Connect your Supabase project first.");
+    return;
+  }
+
+  let f=Object.fromEntries(new FormData(e.target));
+
+  let r=signup
+    ? await db.auth.signUp({email:f.email,password:f.password})
+    : await db.auth.signInWithPassword({email:f.email,password:f.password});
+
+  document.getElementById("authMsg").textContent=
+    r.error?r.error.message:(signup
+      ?"Check your email to confirm your account."
+      :"Signed in.");
+
+  if(!r.error&&!signup){
+    closeAuth();
+    setTimeout(checkAdminAccess,0);
+  }
+});
+
+function setCat(c,b){
+  category=c;
+  document.querySelectorAll(".filters button").forEach(x=>
+    x.classList.remove("active")
+  );
+  b.classList.add("active");
+  loadListings();
+}
 function init(){if(configured()){db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);db.auth.onAuthStateChange((_e,s)=>{user=s?.user||null;isAdmin=false;updateNav();startMessageNotifications();setTimeout(checkAdminAccess,0);});db.auth.getSession().then(({data})=>{user=data.session?.user||null;updateNav();loadListings();startMessageNotifications();checkAdminAccess()})}else{document.getElementById("listingStatus").textContent="Preview mode — connect Supabase to enable real accounts and live listings.";render(demo)}}
 function updateNav(){document.getElementById("loginBtn").style.display=user?"none":"inline-block";document.getElementById("dashBtn").style.display=user?"inline-block":"none";document.getElementById("adminBtn").style.display=user&&isAdmin?"inline-block":"none";document.getElementById("logoutBtn").style.display=user?"inline-block":"none";if(user)document.getElementById("who").textContent="Signed in as "+user.email; }
 async function checkAdminAccess(){
