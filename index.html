@@ -942,13 +942,11 @@ document.getElementById("grid").style.display="grid";
 }
   
 function safe(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-  function formatDescription(value){
-  const lines=String(value||"")
-    .split(/\r?\n/)
-    .map(line=>line.trim())
-    .filter(Boolean);
+  
+function formatDescription(value){
+  let text=String(value||"").trim();
 
-  if(!lines.length){
+  if(!text){
     return "<p>No description provided.</p>";
   }
 
@@ -962,6 +960,26 @@ function safe(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&
     "Condition",
     "Additional information"
   ];
+
+  // Put recognised headings on separate lines.
+  for(const heading of headings){
+    const pattern=new RegExp(
+      "(^|\\s)("+heading.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")(\\s|:)",
+      "gi"
+    );
+
+    text=text.replace(pattern,(match,before,title,after)=>
+      "\n"+title+"\n"
+    );
+  }
+
+  // Separate bullet points.
+  text=text.replace(/\s*\*\s*/g,"\n* ");
+
+  const lines=text
+    .split(/\r?\n/)
+    .map(line=>line.trim())
+    .filter(Boolean);
 
   let html="";
   let bullets=[];
@@ -997,13 +1015,13 @@ function safe(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&
       continue;
     }
 
+    const isBullet=/^[-*•]\s*/.test(line);
     const clean=line.replace(/^[-*•]\s*/,"");
     const parts=clean.match(/^([^:]{2,60}):\s*(.+)$/);
 
     if(parts){
-      flush();
       specs.push([parts[1],parts[2]]);
-    }else if(/^[-*•]\s*/.test(line)){
+    }else if(isBullet){
       bullets.push(clean);
     }else{
       flush();
@@ -1014,6 +1032,7 @@ function safe(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&
   flush();
   return html;
 }
+
 function showDashboard(){document.getElementById("adminDashboard").style.display="none";document.getElementById("dashboard").style.display="block";document.getElementById("dashboard").scrollIntoView({behavior:"smooth"});loadMine();loadMessages();loadSellerVerification();loadSellerProfile()}
 async function showAdminDashboard(){
  const allowed=await checkAdminAccess();
