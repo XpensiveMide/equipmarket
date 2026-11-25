@@ -1351,7 +1351,30 @@ document.getElementById("profileCity").value=data.city||"";
 document.getElementById("profilePhone").value=data.phone||"";
 document.getElementById("profileWebsite").value=data.website||"";
 document.getElementById("profileBio").value=data.bio||"";
-}async function loadMine(){if(!db||!user){document.getElementById("myListings").textContent="Connect database and sign in.";return}let {data,error}=await db.from("listings").select("id,title,status,price").eq("seller_id",user.id).order("created_at",{ascending:false});document.getElementById("myListings").innerHTML=error?safe(error.message):data.length?data.map(x=>`<p><b>${safe(x.title)}</b><br>${safe(x.price)} · ${safe(x.status)} <button class="secondary" onclick="removeListing('${x.id}')">Delete</button></p>`).join(""):"You have not published any listings yet."}document.getElementById("sellerProfileForm").addEventListener("submit",async e=>{
+async function loadMine() {
+  if (!db || !user) {
+    document.getElementById("myListings").textContent =
+      "Connect database and sign in.";
+    return;
+  }
+
+  let { data, error } = await db.from("listings")
+    .select("id,title,status,price,currency,category,country,city,description,image_urls")
+    .eq("seller_id", user.id)
+    .order("created_at", { ascending: false });
+
+  document.getElementById("myListings").innerHTML =
+    error ? safe(error.message) :
+    data.length ? data.map(x => `
+      <p>
+        <b>${safe(x.title)}</b><br>
+        ${safe(x.price)} ${safe(x.currency || "")} · ${safe(x.status)}
+        <button class="secondary" onclick="editListing('${x.id}')">Edit</button>
+        <button class="secondary" onclick="removeListing('${x.id}')">Delete</button>
+      </p>
+    `).join("") :
+    "You have not published any listings yet.";
+}
 e.preventDefault();
 if(!db||!user){alert("Please sign in first.");return}
 const profile={
