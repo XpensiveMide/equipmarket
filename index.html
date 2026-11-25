@@ -864,8 +864,16 @@ ${(listings||[]).map(x=>{
         <button onclick="enquire('${x.id}')">Enquire</button>
       </div>
     </article>`;
+
 }).join("")||"<p>No active listings yet.</p>"}
 </div>`;
+}
+
+function closeSellerProfile(){
+document.getElementById("publicSellerProfile").style.display="none";
+document.getElementById("grid").style.display="grid";
+}
+
 
 
 function closeSellerProfile(){
