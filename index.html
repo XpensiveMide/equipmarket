@@ -961,25 +961,21 @@ function formatDescription(value){
     "Additional information"
   ];
 
-  // Put recognised headings on separate lines.
+  // Put headings on separate lines, even when pasted into one paragraph.
   for(const heading of headings){
-    const pattern=new RegExp(
-      "(^|\\s)("+heading.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")(\\s|:)",
-    heading==="Features"?"g":"gi"
-    );
+    const escaped=heading.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+    const pattern=new RegExp("(^|\\s)("+escaped+")(\\s*:?)","gi");
 
     text=text.replace(pattern,(match,before,title,after)=>
       "\n"+title+"\n"
     );
   }
 
-  // Separate bullet points.
-  text=text.replace(/\s*\*\s*/g,"\n* ");
+  // Put each bullet on its own line.
+  text=text.replace(/\s+[*•]\s*/g,"\n* ");
+  text=text.replace(/\s+-\s+/g,"\n- ");
 
-  const lines=text
-    .split(/\r?\n/)
-    .map(line=>line.trim())
-    .filter(Boolean);
+  const lines=text.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
 
   let html="";
   let bullets=[];
