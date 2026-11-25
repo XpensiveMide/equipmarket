@@ -1029,16 +1029,52 @@ const verified=verifiedSellerIds.has(sellerId)
 ?'<span class="verified-badge">✓ Verified Seller</span>':"";
 
 profileSection.innerHTML=`
+
 <button onclick="closeSellerProfile()">← Back to listings</button>
-<div class="box">
-<h2>${safe(profile.business_name||"Seller")}</h2>
-${verified}
-<p>${safe(profile.seller_type||"Seller")}</p>
-<p>📍 ${safe([profile.city,profile.country].filter(Boolean).join(", "))}</p>
-<p>${safe(profile.bio||"No business description added yet.")}</p>
-${profile.website?`<p>Website: ${safe(profile.website)}</p>`:""}
+
+<div class="em-storefront">
+  <div class="em-cover">
+    <div class="em-cover-tag">BUY • SELL • TRADE EQUIPMENT GLOBALLY</div>
+    <h2>Your Trusted Equipment Partner</h2>
+    <p>Construction • Industrial • Agricultural</p>
+  </div>
+
+  <div class="em-profile">
+    <div class="em-profile-top">
+      <div class="em-avatar">EM</div>
+
+      <div class="em-profile-name">
+        <h3>${safe(profile.business_name||"Seller")}</h3>
+        ${verified}
+        <p>${safe(profile.seller_type||"Seller")}</p>
+      </div>
+    </div>
+
+    <div class="em-profile-info">
+      <p>📍 ${safe([profile.city,profile.country].filter(Boolean).join(", "))}</p>
+      <p>${safe(profile.bio||"No business description added yet.")}</p>
+      ${profile.website?`<p>🌐 <a href="${safe(profile.website)}" target="_blank" rel="noopener noreferrer">Visit website</a></p>`:""}
+    </div>
+
+    <div class="em-stats">
+      <div class="em-stat">
+        <strong>${(listings||[]).length}</strong>
+        <span>Active listings</span>
+      </div>
+      <div class="em-stat">
+        <strong>${verified?"✓":"—"}</strong>
+        <span>Verification</span>
+      </div>
+      <div class="em-stat">
+        <strong>🌍</strong>
+        <span>Global marketplace</span>
+      </div>
+    </div>
+  </div>
 </div>
-<h3>Equipment listed by this seller</h3>
+
+<h3 class="em-section-title">Equipment listed by this seller</h3>
+
 <div class="grid">
 
 ${(listings||[]).map(x=>{
