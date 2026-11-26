@@ -1101,6 +1101,63 @@ async function loadSellerVerification(){
  }
 }
 
+async function loadBuyerVerification() {
+  const statusBox = document.getElementById("buyerVerificationStatus");
+  const form = document.getElementById("buyerVerificationForm");
+  const submit = document.getElementById("buyerVerificationSubmit");
+
+  if (!statusBox || !form) return;
+
+  if (!db || !user) {
+    statusBox.textContent = "Sign in to submit a buyer verification application.";
+    form.style.display = "none";
+    return;
+  }
+
+  form.style.display = "block";
+  statusBox.textContent = "Checking your application...";
+
+  const checkedUser = user.id;
+
+  const { data, error } = await db
+    .from("buyer_verification_requests")
+    .select("id,full_name,country,phone,document_name,status,admin_notes,created_at")
+    .eq("buyer_id", checkedUser)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (user?.id !== checkedUser) return;
+
+  if (error) {
+    statusBox.textContent = "Could not load buyer verification status: " + error.message;
+    return;
+  }
+
+  currentBuyerVerification = data || null;
+
+  if (!data) {
+    statusBox.textContent = "No buyer verification application submitted yet.";
+    submit.disabled = false;
+    form.style.display = "block";
+    return;
+  }
+
+  statusBox.textContent =
+    "Application status: " + data.status.toUpperCase() +
+    " | Name: " + data.full_name +
+    " | Country: " + data.country +
+    (data.document_name ? " | Document: " + data.document_name : "") +
+    (data.admin_notes ? " | Admin note: " + data.admin_notes : "");
+
+  if (["pending", "approved"].includes(data.status)) {
+    form.style.display = "none";
+  } else {
+    form.style.display = "block";
+    submit.disabled = false;
+  }
+}
+
 document.getElementById("sellerVerificationForm").addEventListener("submit",async e=>{
  e.preventDefault();
  const msg=document.getElementById("sellerVerificationMsg");
