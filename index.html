@@ -1206,6 +1206,7 @@ document.getElementById("sellerVerificationForm").addEventListener("submit",asyn
   msg.textContent="Your seller verification application has been submitted.";
   f.reset();
   await loadSellerVerification();
+   loadBuyerVerification();
  }catch(err){
   msg.textContent="Could not submit application: "+(err?.message||"Please try again.");
  }finally{submit.disabled=false}
