@@ -1411,6 +1411,10 @@ async function loadMine(){
 }
 
 
+
+let editingListingId = null;
+let editingListingImageUrls = [];
+
 document.getElementById("newListing").addEventListener("submit", async e => {
   e.preventDefault();
 
@@ -1425,8 +1429,8 @@ document.getElementById("newListing").addEventListener("submit", async e => {
     document.getElementById("listingPhotos").files || []
   );
 
-  if (files.length > 5) {
-    alert("You can upload a maximum of 5 photos.");
+  if (editingListingImageUrls.length + files.length > 5) {
+    alert("A listing can have a maximum of 5 photos in total.");
     return;
   }
 
@@ -1440,6 +1444,7 @@ document.getElementById("newListing").addEventListener("submit", async e => {
 
   const photoUrls = [];
   const uploadedPaths = [];
+  const isEditing = Boolean(editingListingId);
 
   try {
     for (const file of files) {
@@ -1461,7 +1466,7 @@ document.getElementById("newListing").addEventListener("submit", async e => {
       photoUrls.push(data.publicUrl);
     }
 
-    const { error } = await db.from("listings").insert({
+    const listingData = {
       title: f.title,
       category: f.category,
       price: Number(f.price),
@@ -1469,25 +1474,89 @@ document.getElementById("newListing").addEventListener("submit", async e => {
       country: f.country,
       city: f.city,
       description: f.description,
-      seller_id: user.id,
-      status: "active",
-      image_urls: photoUrls
-    });
+      image_urls: [...editingListingImageUrls, ...photoUrls]
+    };
 
-    if (error) throw error;
+    if (isEditing) {
+      const { error } = await db.from("listings")
+        .update(listingData)
+        .eq("id", editingListingId)
+        .eq("seller_id", user.id);
+
+      if (error) throw error;
+    } else {
+      const { error } = await db.from("listings").insert({
+        ...listingData,
+        seller_id: user.id,
+        status: "active"
+      });
+
+      if (error) throw error;
+    }
 
     form.reset();
+    editingListingId = null;
+    editingListingImageUrls = [];
+
+    form.closest(".box").querySelector("h3").textContent = "Create a listing";
+    form.querySelector('button[type="submit"]').textContent = "Publish listing";
+
     await loadMine();
     await loadListings();
-    alert("Your listing and equipment photos have been published.");
+
+    alert(isEditing
+      ? "Your listing has been updated successfully."
+      : "Your listing and equipment photos have been published.");
 
   } catch (error) {
     if (uploadedPaths.length) {
       await db.storage.from("listing-images").remove(uploadedPaths);
     }
-    alert("Could not publish listing: " + error.message);
+
+    alert("Could not save listing: " + error.message);
   }
 });
+
+
+async function editListing(id) {
+  if (!db || !user) {
+    alert("Please sign in first.");
+    return;
+  }
+
+  const { data, error } = await db.from("listings")
+    .select("id,title,category,price,currency,country,city,description,image_urls")
+    .eq("id", id)
+    .eq("seller_id", user.id)
+    .single();
+
+  if (error) {
+    alert("Could not open listing: " + error.message);
+    return;
+  }
+
+  const form = document.getElementById("newListing");
+
+  editingListingId = data.id;
+  editingListingImageUrls = Array.isArray(data.image_urls)
+    ? data.image_urls
+    : [];
+
+  form.elements.namedItem("title").value = data.title || "";
+  form.elements.namedItem("category").value = data.category || "Construction";
+  form.elements.namedItem("price").value = data.price ?? "";
+  form.elements.namedItem("currency").value = data.currency || "USD";
+  form.elements.namedItem("country").value = data.country || "";
+  form.elements.namedItem("city").value = data.city || "";
+  form.elements.namedItem("description").value = data.description || "";
+
+  document.getElementById("listingPhotos").value = "";
+
+  form.closest(".box").querySelector("h3").textContent = "Edit listing";
+  form.querySelector('button[type="submit"]').textContent = "Save changes";
+
+  form.scrollIntoView({ behavior: "smooth", block: "center" });
+}
 
 async function removeListing(id){if(!confirm("Delete this listing?"))return;let {error}=await db.from("listings").delete().eq("id",id);if(error)alert(error.message);else{loadMine();loadListings()}}
 async function enquire(id){if(!db){alert("Messaging is unavailable in preview mode.");return}let {data,error}=await db.from("listings").select("id,title,seller_id,status").eq("id",id).single();if(error){alert(error.message);return}if(!user){alert("Please sign in to contact the seller.");openAuth();return}if(user.id===data.seller_id){alert("This is your own listing. Buyers can contact you from this page.");return}if(data.status!=="active"){alert("This listing is not currently active.");return}openEnquiry(data.id,data.title,data.seller_id)}
