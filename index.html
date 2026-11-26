@@ -2187,86 +2187,140 @@ async function editListing(id) {
   });
 }
 
-
-
-
 async function removeListing(id) {
-  if (!db || !user) {
-    alert("Please sign in first.");
-    return;
-  }
-
-  if (!id) {
-    alert("Listing ID is missing.");
-    return;
-  }
-
-  const confirmed = confirm(
-    "Are you sure you want to permanently delete this listing? This action cannot be undone."
-  );
-
-  if (!confirmed) return;
-
-  const { data, error } = await db
-    .from("listings")
-    .delete()
-    .eq("id", id)
-    .eq("seller_id", user.id)
-    .select("id");
-
-  if (error) {
-    alert("Could not delete listing: " + error.message);
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    alert("Listing not deleted. It may not belong to your account.");
-    return;
-  }
-
-  alert("Your listing has been deleted successfully.");
-
-  await loadMine();
-  await loadListings();
-}
-
-async function enquire(id) {
   if (!db) {
-    alert("Messaging is unavailable in preview mode.");
-    return;
-  }
-
-  const { data, error } = await db
-    .from("listings")
-    .select("id,title,seller_id,status")
-    .eq("id", id)
-    .single();
-
-  if (error) {
-    alert(error.message);
+    alert("EquipMarket is not connected. Please try again later.");
     return;
   }
 
   if (!user) {
-    alert("Please sign in to contact the seller.");
+    alert("Please sign in to manage your listings.");
     openAuth();
     return;
   }
 
-  if (user.id === data.seller_id) {
-    alert("This is your own listing. Buyers can contact you from this page.");
+  if (!id || typeof id !== "string") {
+    alert("Invalid listing ID. Please refresh and try again.");
     return;
   }
 
-  if (data.status !== "active") {
-    alert("This listing is not currently active.");
+  const confirmed = confirm(
+    "Delete this equipment listing permanently?\n\n" +
+    "This action cannot be undone."
+  );
+
+  if (!confirmed) return;
+
+  const buttons = document.querySelectorAll(
+    `button[onclick="removeListing('${id}')"]`
+  );
+
+  buttons.forEach(button => {
+    button.disabled = true;
+    button.textContent = "Deleting...";
+  });
+
+  try {
+    const { data, error } = await db
+      .from("listings")
+      .delete()
+      .eq("id", id)
+      .eq("seller_id", user.id)
+      .select("id");
+
+    if (error) {
+      console.error("Listing deletion error:", error);
+      alert("Unable to delete this listing. Please try again.");
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      alert(
+        "No listing was deleted. It may already have been removed " +
+        "or may not belong to your account."
+      );
+      return;
+    }
+
+    alert("Your equipment listing was deleted successfully.");
+
+    await Promise.all([
+      loadMine(),
+      loadListings()
+    ]);
+
+  } catch (error) {
+    console.error("Unexpected deletion error:", error);
+    alert("Something went wrong while deleting the listing. Please try again.");
+
+  } finally {
+    buttons.forEach(button => {
+      button.disabled = false;
+      button.textContent = "Delete";
+    });
+  }
+}
+
+
+async function enquire(id) {
+  if (!db) {
+    alert("Messaging is temporarily unavailable. Please try again later.");
     return;
   }
 
-  openEnquiry(data.id, data.title, data.seller_id);
+  if (!id || typeof id !== "string") {
+    alert("This listing could not be identified. Please refresh the page.");
+    return;
+  }
+
+  if (!user) {
+    const confirmed = confirm(
+      "You need an EquipMarket account to contact this seller.\n\n" +
+      "Would you like to sign in or register now?"
+    );
+
+    if (confirmed) openAuth();
+    return;
+  }
+
+  try {
+    const { data, error } = await db
+      .from("listings")
+      .select("id,title,seller_id,status")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Enquiry listing lookup error:", error);
+      alert("We could not load this listing. Please try again.");
+      return;
+    }
+
+    if (!data) {
+      alert("This listing is no longer available.");
+      return;
+    }
+
+    if (data.seller_id === user.id) {
+      alert("You cannot send an enquiry about your own listing.");
+      return;
+    }
+
+    if (data.status !== "active") {
+      alert("This listing is not currently available for enquiries.");
+      return;
+    }
+
+    openEnquiry(data.id, data.title, data.seller_id);
+
+  } catch (error) {
+    console.error("Unexpected enquiry error:", error);
+    alert("Something went wrong. Please try again.");
+  }
 }
 
 init();
+
 
 </script>
 </body></html>
