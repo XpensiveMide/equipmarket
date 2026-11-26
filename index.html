@@ -1043,7 +1043,7 @@ return;
 }
 
 const {data:listings}=await db.from("listings")
-.select("id,title,category,price,currency,country,city,description,image_urls")
+.select("id,title,category,price,currency,country,city,description,image_urls,available_for_sale,available_for_rent,rental_daily_price,rental_weekly_price,rental_monthly_price")
 .eq("seller_id",sellerId)
 .eq("status","active");
 
