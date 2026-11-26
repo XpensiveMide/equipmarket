@@ -1058,6 +1058,8 @@ function startMessageNotifications(){
 }
 
 const VERIFICATION_BUCKET="seller-verification-documents";
+  const BUYER_VERIFICATION_BUCKET = "buyer-verification-documents";
+let currentBuyerVerification = null;
 let currentSellerVerification=null;
 
 async function loadSellerVerification(){
