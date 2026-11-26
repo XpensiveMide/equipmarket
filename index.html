@@ -1723,10 +1723,20 @@ async function checkPublicVerification(){
   statusLine.style.color = style.text;
   statusLine.style.fontWeight = "bold";
 
-  const dateLine = document.createElement("p");
-  dateLine.textContent = record.verified_at
-    ? "Verified on: " + new Date(record.verified_at).toLocaleDateString()
-    : "Verification date: Not available";
+  
+const dateLine = document.createElement("p");
+
+if (record.status === "verified" && record.verified_at) {
+  dateLine.textContent =
+    "Verified on: " + new Date(record.verified_at).toLocaleDateString();
+} else if (record.status === "revoked") {
+  dateLine.textContent = "Verification has been revoked.";
+} else if (record.status === "suspended") {
+  dateLine.textContent = "Verification is currently suspended.";
+} else {
+  dateLine.textContent = "Verification date: Not available";
+}
+
 
   details.append(codeLine,typeLine,statusLine,dateLine);
   card.append(heading,badge,details);
