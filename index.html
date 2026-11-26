@@ -1338,21 +1338,23 @@ document.getElementById("enquiryForm").addEventListener("submit",async e=>{
  closeEnquiry();alert("Your message has been sent.");loadMessages();
 });
 async function loadSellerProfile(){
-if(!db||!user)return;
-const {data,error}=await db.from("profiles")
-.select("business_name,seller_type,country,city,phone,website,bio")
-.eq("id",user.id).maybeSingle();
-if(error){console.error("Profile loading error:",error.message);return}
-if(!data)return;
-document.getElementById("profileBusinessName").value=data.business_name||"";
-document.getElementById("profileSellerType").value=data.seller_type||"Individual";
-document.getElementById("profileCountry").value=data.country||"";
-document.getElementById("profileCity").value=data.city||"";
-document.getElementById("profilePhone").value=data.phone||"";
-document.getElementById("profileWebsite").value=data.website||"";
-document.getElementById("profileBio").value=data.bio||"";
+  if(!db||!user)return;
 
-async function loadSellerProfile(){
+  const {data,error}=await db.from("profiles")
+    .select("business_name,seller_type,country,city,phone,website,bio")
+    .eq("id",user.id).maybeSingle();
+
+  if(error){console.error("Profile loading error:",error.message);return}
+  if(!data)return;
+
+  document.getElementById("profileBusinessName").value=data.business_name||"";
+  document.getElementById("profileSellerType").value=data.seller_type||"Individual";
+  document.getElementById("profileCountry").value=data.country||"";
+  document.getElementById("profileCity").value=data.city||"";
+  document.getElementById("profilePhone").value=data.phone||"";
+  document.getElementById("profileWebsite").value=data.website||"";
+  document.getElementById("profileBio").value=data.bio||"";
+}
 
   if(!db||!user)return;
 
