@@ -595,7 +595,36 @@ footer{background:var(--navy);color:#dce8f3;text-align:center;padding:28px;margi
 <div class="grid" id="grid"></div>
  <section class="wrap" id="publicSellerProfile" style="display:none"></section>
 <div class="notice"><b>Marketplace:</b> Listings and buyer-to-seller enquiries are connected to the EquipMarket database. Seller photo uploads are planned for a later stage.</div></section>
-<section class="wrap" id="dashboard"><h2>Seller dashboard</h2><p class="muted" id="who"></p><div class="dashgrid">
+
+<section class="wrap" id="dashboard">
+  <div class="em-dashboard-layout">
+
+    <aside class="em-dashboard-sidebar">
+      <h3>EquipMarket</h3>
+      <nav class="em-dashboard-nav">
+        <button class="active" onclick="showDashboardSection('overview',this)">Overview</button>
+        <button onclick="showDashboardSection('store',this)">My Store</button>
+        <button onclick="showDashboardSection('listings',this)">My Listings</button>
+        <button onclick="showDashboardSection('add',this)">Add Equipment</button>
+        <button onclick="showDashboardSection('messages',this)">Messages</button>
+        <button onclick="showDashboardSection('verification',this)">Verification</button>
+        <button onclick="showDashboardSection('account',this)">Account Settings</button>
+      </nav>
+    </aside>
+
+    <div class="em-dashboard-content">
+      <div class="em-dashboard-heading">
+        <h2>Dashboard Overview</h2>
+        <p id="who"></p>
+      </div>
+
+      <div class="em-dashboard-panel active" id="dashboard-overview">
+        <div class="box">
+          <h3>Welcome to EquipMarket</h3>
+          <p>Manage your equipment, business profile, enquiries and verification from one place.</p>
+        </div>
+      </div>
+
 <div class="box">
 <h3>My Public Seller Profile</h3>
 <form id="sellerProfileForm">
