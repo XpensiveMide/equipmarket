@@ -1346,6 +1346,92 @@ async function loadAdminVerifications(){
  }).join("");
 }
 
+async function loadAdminBuyerVerifications() {
+  const box = document.getElementById("adminBuyerVerificationList");
+
+  if (!box) return;
+
+  if (!db || !user || !await checkAdminAccess()) {
+    box.textContent = "Authorized admin access is required.";
+    return;
+  }
+
+  box.textContent = "Loading buyer applications...";
+
+  const filter =
+    document.getElementById("buyerVerificationStatusFilter")?.value || "pending";
+
+  let query = db
+    .from("buyer_verification_requests")
+    .select("id,buyer_id,full_name,country,phone,document_name,status,admin_notes,created_at")
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  if (filter !== "all") {
+    query = query.eq("status", filter);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    box.textContent = "Could not load buyer applications: " + error.message;
+    return;
+  }
+
+  const rows = data || [];
+
+  document.getElementById("adminBuyerVerificationCount").textContent =
+    rows.length + " application(s)";
+
+  if (!rows.length) {
+    box.textContent = "No buyer applications in this view.";
+    return;
+  }
+
+  box.innerHTML = rows.map(v => {
+    const date = v.created_at
+      ? new Date(v.created_at).toLocaleString()
+      : "Date unavailable";
+
+    return `
+      <article class="verification-card">
+        <div class="report-top">
+          <b>${safe(v.full_name)}</b>
+          <span class="status-pill">${safe(v.status)}</span>
+        </div>
+
+        <div class="report-meta">
+          <b>Country:</b> ${safe(v.country)}<br>
+          <b>Phone:</b> ${safe(v.phone)}<br>
+          <b>Submitted:</b> ${safe(date)}<br>
+          <b>Buyer ID:</b> ${safe(v.buyer_id)}<br>
+          <b>Document:</b> ${safe(v.document_name || "Not provided")}
+        </div>
+
+        <button class="secondary" type="button"
+          onclick="openBuyerVerificationDocument('${v.id}')">
+          View private document
+        </button>
+
+        <label for="buyer-vstatus-${v.id}">Decision</label>
+        <select id="buyer-vstatus-${v.id}">
+          <option value="pending" ${v.status === "pending" ? "selected" : ""}>Pending</option>
+          <option value="approved" ${v.status === "approved" ? "selected" : ""}>Approved</option>
+          <option value="rejected" ${v.status === "rejected" ? "selected" : ""}>Rejected</option>
+        </select>
+
+        <label for="buyer-vnote-${v.id}">Admin note</label>
+        <textarea id="buyer-vnote-${v.id}" maxlength="2000">${safe(v.admin_notes || "")}</textarea>
+
+        <button type="button"
+          onclick="saveBuyerVerificationStatus('${v.id}')">
+          Save buyer review
+        </button>
+      </article>
+    `;
+  }).join("");
+}
+
 async function openVerificationDocument(applicationId){
  if(!db||!user||!await checkAdminAccess()){alert("Authorized admin access is required.");return}
  const {data,error}=await db.from("seller_verifications").select("document_path").eq("id",applicationId).single();
