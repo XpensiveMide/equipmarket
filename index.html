@@ -1198,10 +1198,16 @@ const sellerVerification =
     ? verificationData[0]
     : null;
 
+
 const verified =
   sellerVerification?.status === "verified"
-    ? '<span class="verified-badge">✓ EquipMarket Verified Seller</span>'
+    ? `<span class="verified-badge">✓ EquipMarket Verified Seller</span>
+       <p class="verification-code">
+         Official Verification Code:
+         <strong>${safe(sellerVerification.verification_code)}</strong>
+       </p>`
     : "";
+
 
 
 profileSection.innerHTML=`
