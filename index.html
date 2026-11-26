@@ -1154,6 +1154,102 @@ document.getElementById("sellerVerificationForm").addEventListener("submit",asyn
  }finally{submit.disabled=false}
 });
 
+document.getElementById("buyerVerificationForm").addEventListener("submit", async e => {
+  e.preventDefault();
+
+  const msg = document.getElementById("buyerVerificationMsg");
+  const submit = document.getElementById("buyerVerificationSubmit");
+
+  if (!db || !user) {
+    msg.textContent = "Please sign in before submitting.";
+    return;
+  }
+
+  const fullName = document.getElementById("buyerFullName").value.trim();
+  const country = document.getElementById("buyerCountry").value.trim();
+  const phone = document.getElementById("buyerPhone").value.trim();
+  const file = document.getElementById("buyerVerificationDocument").files[0];
+
+  if (!fullName || !country || !phone || !file) {
+    msg.textContent = "Please complete all fields and choose a document.";
+    return;
+  }
+
+  if (!["application/pdf", "image/jpeg", "image/png"].includes(file.type)) {
+    msg.textContent = "Choose a PDF, JPG or PNG document.";
+    return;
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    msg.textContent = "The document must be 10 MB or smaller.";
+    return;
+  }
+
+  submit.disabled = true;
+  msg.textContent = "Submitting your application...";
+
+  let uploadedPath = null;
+
+  try {
+    const { data: existing, error: checkError } = await db
+      .from("buyer_verification_requests")
+      .select("id,status")
+      .eq("buyer_id", user.id)
+      .in("status", ["pending", "approved"])
+      .limit(1);
+
+    if (checkError) throw checkError;
+
+    if (existing && existing.length > 0) {
+      msg.textContent = "You already have a pending or approved application.";
+      return;
+    }
+
+    const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-100);
+    uploadedPath = `${user.id}/${crypto.randomUUID()}_${cleanName}`;
+
+    const { error: uploadError } = await db.storage
+      .from(BUYER_VERIFICATION_BUCKET)
+      .upload(uploadedPath, file, {
+        contentType: file.type,
+        upsert: false
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { error: insertError } = await db
+      .from("buyer_verification_requests")
+      .insert({
+        buyer_id: user.id,
+        full_name: fullName,
+        country: country,
+        phone: phone,
+        document_path: uploadedPath,
+        document_name: file.name,
+        status: "pending"
+      });
+
+    if (insertError) throw insertError;
+
+    msg.textContent = "Your buyer verification application was submitted successfully.";
+    e.target.reset();
+
+    if (typeof loadBuyerVerification === "function") {
+      await loadBuyerVerification();
+    }
+
+  } catch (err) {
+    if (uploadedPath) {
+      await db.storage.from(BUYER_VERIFICATION_BUCKET).remove([uploadedPath]);
+    }
+
+    msg.textContent = "Could not submit application: " + (err.message || "Please try again.");
+
+  } finally {
+    submit.disabled = false;
+  }
+});
+
 async function loadAdminVerifications(){
  const box=document.getElementById("adminVerificationList");
  if(!box)return;
