@@ -861,7 +861,7 @@ async function loadListings(){
   }
 
   let query=db.from("listings")
-    .select("id,title,category,price,currency,country,city,description,status,created_at,seller_id,image_urls")
+  .select("id,title,category,price,currency,country,city,description,status,created_at,seller_id,image_urls,available_for_sale,available_for_rent,rental_daily_price,rental_weekly_price,rental_monthly_price")
     .eq("status","active")
     .order("created_at",{ascending:false})
     .limit(60);
