@@ -1276,7 +1276,8 @@ async function loadMessages(){
  const conversations=new Map();
  data.forEach(m=>{
   const other=m.sender_id===user.id?m.recipient_id:m.sender_id;
-  async function loadSellerProfile(){
+  
+async function loadSellerProfile(){
   if(!db||!user)return;
 
   const {data,error}=await db.from("profiles")
@@ -1298,20 +1299,7 @@ async function loadMessages(){
   document.getElementById("profileWebsite").value=data.website||"";
   document.getElementById("profileBio").value=data.bio||"";
 }
-document.getElementById("reportForm").addEventListener("submit",async e=>{
- e.preventDefault();if(!db||!user){document.getElementById("reportMsg").textContent="Please sign in again before submitting.";return}
- const f=Object.fromEntries(new FormData(e.target));
- const details=(f.details||"").trim();
- const {error}=await db.from("listing_reports").insert({listing_id:f.listing_id,reporter_id:user.id,reason:f.reason,details:details||null});
- if(error){document.getElementById("reportMsg").textContent=error.code==="23505"?"You have already reported this listing.":"Could not submit report: "+error.message;return}
- document.getElementById("reportMsg").textContent="Thank you. Your report has been submitted for review.";
- e.target.reset();
- setTimeout(closeReport,1800);
-});
 
-function openEnquiry(listing,title,recipient){
- document.getElementById("enquiryTitle").textContent="Enquire about "+title;
- const f=document.getElementById("enquiryForm");f.elements.listing_id.value=listing;f.elements.recipient_id.value=recipient;f.elements.message.value="";
  document.getElementById("enquiryMsg").textContent="";document.getElementById("enquiryModal").classList.add("open");
 }
 function closeEnquiry(){document.getElementById("enquiryModal").classList.remove("open")}
