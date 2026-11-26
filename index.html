@@ -1673,7 +1673,30 @@ function showDashboardSection(section,button){
     heading.textContent=titles[section]||"Dashboard";
   }
 }
+async function showAdminDashboard(){
+  if(!user){
+    alert("Please sign in first.");
+    openAuth();
+    return;
+  }
 
+  const allowed = await checkAdminAccess();
+
+  if(!allowed){
+    alert("Admin access is not enabled for this account.");
+    return;
+  }
+
+  document.getElementById("dashboard").style.display="none";
+  document.getElementById("adminDashboard").style.display="block";
+
+  document.getElementById("adminDashboard").scrollIntoView({
+    behavior:"smooth"
+  });
+
+  loadAdminReports();
+  loadAdminVerifications();
+}
 async function loadAdminReports(){
  const box=document.getElementById("adminReportList");
  if(!box)return;
