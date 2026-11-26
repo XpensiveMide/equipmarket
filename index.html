@@ -597,6 +597,32 @@ footer{background:var(--navy);color:#dce8f3;text-align:center;padding:28px;margi
  <section class="wrap" id="publicSellerProfile" style="display:none"></section>
 <div class="notice"><b>Marketplace:</b> Listings and buyer-to-seller enquiries are connected to the EquipMarket database. Seller photo uploads are planned for a later stage.</div></section>
 
+<section class="wrap" id="publicVerification">
+  <div class="box">
+    <h2>🛡️ Verify an EquipMarket Account</h2>
+    <p class="muted">
+      Check the authenticity and current status of an EquipMarket buyer or seller verification code.
+    </p>
+
+    <label for="verificationCodeInput">Verification code</label>
+    <input
+      id="verificationCodeInput"
+      type="text"
+      maxlength="40"
+      placeholder="e.g. EM-SELL-6D2476C2EDCA"
+      autocomplete="off"
+    >
+
+    <button type="button" onclick="checkPublicVerification()">
+      Verify Account
+    </button>
+
+    <div id="publicVerificationResult" aria-live="polite"
+         style="margin-top:16px">
+    </div>
+  </div>
+</section>
+
 <section class="wrap" id="dashboard">
   <div class="em-dashboard-layout">
 
