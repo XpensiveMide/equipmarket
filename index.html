@@ -2407,6 +2407,7 @@ async function loadMessages(){
   `).join("");
 }
 
+
 async function loadAccountVerification(){
   const panel = document.getElementById("accountVerificationStatus");
 
@@ -2452,9 +2453,28 @@ async function loadAccountVerification(){
     code.textContent = "Verification code: " + item.verification_code;
 
     card.append(heading,status,code);
+
+    if(item.account_type === "buyer" && item.status === "verified"){
+      const verifyLink = document.createElement("a");
+      verifyLink.href = "#publicVerification";
+      verifyLink.textContent = "🛡️ Verify this buyer's account";
+
+      verifyLink.addEventListener("click", () => {
+        const input = document.getElementById("verificationCodeInput");
+
+        if(input){
+          input.value = item.verification_code;
+          checkPublicVerification();
+        }
+      });
+
+      card.appendChild(verifyLink);
+    }
+
     panel.appendChild(card);
   });
 }
+
 
 async function loadSellerProfile(){
   if(!db||!user)return;
