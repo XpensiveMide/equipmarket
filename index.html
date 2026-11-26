@@ -1187,8 +1187,22 @@ const {data:listings}=await db.from("listings")
 .eq("seller_id",sellerId)
 .eq("status","active");
 
-const verified=verifiedSellerIds.has(sellerId)
-?'<span class="verified-badge">✓ Verified Seller</span>':"";
+
+const {data:verificationData,error:verificationError}=await db.rpc(
+  "get_public_seller_verification",
+  {p_seller_id:sellerId}
+);
+
+const sellerVerification =
+  !verificationError && verificationData?.length
+    ? verificationData[0]
+    : null;
+
+const verified =
+  sellerVerification?.status === "verified"
+    ? '<span class="verified-badge">✓ EquipMarket Verified Seller</span>'
+    : "";
+
 
 profileSection.innerHTML=`
 
