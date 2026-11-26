@@ -917,7 +917,36 @@ function setCat(c,b){
   loadListings();
 }
 
-function init(){if(configured()){db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);db.auth.onAuthStateChange((_e,s)=>{user=s?.user||null;isAdmin=false;updateNav();startMessageNotifications();setTimeout(checkAdminAccess,0);});db.auth.getSession().then(({data})=>{user=data.session?.user||null;updateNav();loadListings();startMessageNotifications();checkAdminAccess()})}else{document.getElementById("listingStatus").textContent="Preview mode — connect Supabase to enable real accounts and live listings.";render(demo)}}
+
+function init(){
+  if(configured()){
+    db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+    db.auth.onAuthStateChange((_e,s)=>{
+      user=s?.user||null;
+      isAdmin=false;
+      updateNav();
+      startMessageNotifications();
+      setTimeout(checkAdminAccess,0);
+      loadAccountVerification();
+    });
+
+    db.auth.getSession().then(({data})=>{
+      user=data.session?.user||null;
+      updateNav();
+      loadListings();
+      startMessageNotifications();
+      checkAdminAccess();
+      loadAccountVerification();
+    });
+
+  }else{
+    document.getElementById("listingStatus").textContent=
+      "Preview mode — connect Supabase to enable real accounts and live listings.";
+    render(demo);
+  }
+}
+
 function updateNav(){document.getElementById("loginBtn").style.display=user?"none":"inline-block";document.getElementById("dashBtn").style.display=user?"inline-block":"none";document.getElementById("adminBtn").style.display=user&&isAdmin?"inline-block":"none";document.getElementById("logoutBtn").style.display=user?"inline-block":"none";if(user)document.getElementById("who").textContent="Signed in as "+user.email; }
 async function checkAdminAccess(){
  isAdmin=false;
