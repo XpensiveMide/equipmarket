@@ -1618,7 +1618,15 @@ const verified =
        <p class="verification-code">
          Official Verification Code:
          <strong>${safe(sellerVerification.verification_code)}</strong>
-       </p>`
+       </p>
+       <a
+         href="#publicVerification"
+         data-verification-code="${safe(sellerVerification.verification_code)}"
+         onclick="document.getElementById('verificationCodeInput').value=this.dataset.verificationCode"
+         style="display:inline-block;margin-top:8px;color:#1769aa;font-weight:bold;text-decoration:underline"
+       >
+         🛡️ Verify this seller's account
+       </a>`
     : "";
 
 
