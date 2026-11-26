@@ -1262,46 +1262,78 @@ async function saveReportStatus(reportId){
  await loadAdminReports();
 }
 async function loadMessages(){
- const box=document.getElementById("messageInbox");
- if(!db||!user){box.textContent="Sign in to view messages.";return}
- box.textContent="Loading conversations...";
- const {data,error}=await db.from("messages")
-  .select("id,listing_id,sender_id,recipient_id,message,created_at,listings(title,seller_id)")
-  .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
-  .order("created_at",{ascending:false})
-  .limit(500);
- if(error){box.textContent="Could not load messages: "+error.message;return}
- if(!data||!data.length){box.textContent="No enquiries yet. Messages about your listings will appear here.";return}
+  const box=document.getElementById("messageInbox");
 
- const conversations=new Map();
- data.forEach(m=>{
-  const other=m.sender_id===user.id?m.recipient_id:m.sender_id;
-  
+  if(!db||!user){
+    box.textContent="Sign in to view messages.";
+    return;
+  }
+
+  box.textContent="Loading conversations...";
+
+  const {data,error}=await db.from("messages")
+    .select("id,listing_id,sender_id,recipient_id,message,created_at,listings(title,seller_id)")
+    .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
+    .order("created_at",{ascending:false})
+    .limit(500);
+
+  if(error){
+    box.textContent="Could not load messages: "+error.message;
+    return;
+  }
+
+  if(!data||!data.length){
+    box.textContent="No enquiries yet. Messages about your listings will appear here.";
+    return;
+  }
+
+  const conversations=new Map();
+
+  data.forEach(m=>{
+    const other=m.sender_id===user.id
+      ? m.recipient_id
+      : m.sender_id;
+
+    const key=m.listing_id+"_"+other;
+
+    if(!conversations.has(key)){
+      conversations.set(key,{
+        title:m.listings?.title||"Equipment listing",
+        messages:[]
+      });
+    }
+
+    conversations.get(key).messages.push(m);
+  });
+
+  box.innerHTML=Array.from(conversations.values()).map(conversation=>`
+    <div class="conversation">
+      <div class="conversation-head">
+        <b>${safe(conversation.title)}</b>
+        <small>${conversation.messages.length} message(s)</small>
+      </div>
+      <div class="conversation-messages">
+        ${conversation.messages.slice().reverse().map(m=>`
+          <div class="message-line">
+            <div class="message-meta">
+              <b>${m.sender_id===user.id?"You":"Other participant"}</b>
+              <span>${safe(new Date(m.created_at).toLocaleString())}</span>
+            </div>
+            <p>${safe(m.message)}</p>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `).join("");
+}
 
 async function loadSellerProfile(){
   if(!db||!user)return;
 
   const {data,error}=await db.from("profiles")
     .select("business_name,seller_type,country,city,phone,website,bio")
-    .eq("id",user.id).maybeSingle();
-
-  if(error){console.error("Profile loading error:",error.message);return}
-  if(!data)return;
-
-  document.getElementById("profileBusinessName").value=data.business_name||"";
-  document.getElementById("profileSellerType").value=data.seller_type||"Individual";
-  document.getElementById("profileCountry").value=data.country||"";
-  document.getElementById("profileCity").value=data.city||"";
-  document.getElementById("profilePhone").value=data.phone||"";
-  document.getElementById("profileWebsite").value=data.website||"";
-  document.getElementById("profileBio").value=data.bio||"";
-}
-
-  if(!db||!user)return;
-
-  const {data,error}=await db.from("profiles")
-    .select("business_name,seller_type,country,city,phone,website,bio")
-    .eq("id",user.id).maybeSingle();
+    .eq("id",user.id)
+    .maybeSingle();
 
   if(error){
     console.error("Profile loading error:",error.message);
