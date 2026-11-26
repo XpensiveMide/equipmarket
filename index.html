@@ -129,7 +129,75 @@ h2{margin:0 0 7px}.muted{color:var(--muted);font-size:14px}.categories,.grid{dis
   object-fit:cover;
 }
 
-.body{padding:15px}
+
+.body{
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.offer-labels{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:4px;
+}
+
+.offer-labels .tag{
+  display:inline-flex;
+  align-items:center;
+  padding:7px 12px;
+  border-radius:20px;
+  background:#eaf3fc;
+  color:#1769aa;
+  font-size:12px;
+  font-weight:700;
+}
+
+.price{
+  font-size:25px;
+  font-weight:800;
+  color:#10243a;
+  background:#f4f7fa;
+  border:1px solid #e2e8ef;
+  border-radius:9px;
+  padding:14px;
+  margin:0;
+}
+
+.rental-prices{
+  background:#f4f8f5;
+  border:1px solid #dceadd;
+  border-radius:9px;
+  padding:14px;
+  line-height:1.9;
+  font-size:14px;
+}
+
+.rental-prices strong{
+  display:block;
+  color:#17613a;
+  margin-bottom:5px;
+}
+
+.body button{
+  width:100%;
+  margin:0;
+}
+
+.body button:not(.report-button){
+  min-height:44px;
+}
+
+.body button.report-button{
+  background:transparent;
+  color:#9b3c3c;
+  border:1px solid #eadada;
+  font-size:12px;
+  padding:8px;
+}
+
 .description-content{
   margin-top:12px;
   line-height:1.6;
