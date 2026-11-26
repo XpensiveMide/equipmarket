@@ -779,6 +779,66 @@ footer{background:var(--navy);color:#dce8f3;text-align:center;padding:28px;margi
 
 <div class="em-dashboard-panel" id="dashboard-verification">
 <div class="box" id="sellerVerification">
+<div class="box" id="buyerVerification">
+  <h3>Buyer verification</h3>
+  <p class="muted">
+    Verify your identity to build trust with sellers on EquipMarket.
+  </p>
+
+  <form id="buyerVerificationForm">
+    <label for="buyerFullName">Full name</label>
+    <input
+      type="text"
+      id="buyerFullName"
+      required
+      maxlength="150"
+      placeholder="Enter your full name"
+    >
+
+    <label for="buyerCountry">Country</label>
+    <input
+      type="text"
+      id="buyerCountry"
+      required
+      maxlength="100"
+      placeholder="Enter your country"
+    >
+
+    <label for="buyerPhone">Phone number</label>
+    <input
+      type="tel"
+      id="buyerPhone"
+      required
+      maxlength="30"
+      placeholder="Enter your phone number"
+    >
+
+    <label for="buyerVerificationDocument">
+      Identity document
+    </label>
+    <input
+      type="file"
+      id="buyerVerificationDocument"
+      accept=".jpg,.jpeg,.png,.pdf"
+      required
+    >
+
+    <p class="muted">
+      Accepted formats: JPG, PNG and PDF. Maximum size: 10 MB.
+    </p>
+
+    <button type="submit">Submit buyer verification</button>
+  </form>
+
+  <p
+    class="muted"
+    id="buyerVerificationMsg"
+    aria-live="polite"
+  ></p>
+
+  <div id="buyerVerificationStatus"></div>
+</div>
+
 <h3>Seller verification</h3>
 <p class="muted">Submit your business details and one supporting document. Your document is stored privately and is only available to you and authorized EquipMarket administrators.</p>
 <div id="sellerVerificationStatus" class="muted">Loading your verification status...</div>
