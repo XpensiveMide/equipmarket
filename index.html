@@ -1205,7 +1205,66 @@ function setCat(c,b){
   loadListings();
 }
 
+async function checkPublicVerification(){
+  const input = document.getElementById("verificationCodeInput");
+  const result = document.getElementById("publicVerificationResult");
 
+  if(!input || !result) return;
+
+  const code = input.value.trim();
+
+  if(!code){
+    result.textContent = "Please enter a verification code.";
+    input.focus();
+    return;
+  }
+
+  if(!db){
+    result.textContent = "Verification service is currently unavailable. Please try again later.";
+    return;
+  }
+
+  result.textContent = "Checking verification code...";
+
+  const {data,error} = await db.rpc(
+    "check_equipmarket_verification",
+    {p_code: code}
+  );
+
+  if(error){
+    console.error("Public verification check error:",error.message);
+    result.textContent = "We could not check this code right now. Please try again.";
+    return;
+  }
+
+  if(!data || data.length === 0){
+    result.textContent = "No verification record was found for this code. Please check the code and try again.";
+    return;
+  }
+
+  const record = data[0];
+
+  const heading = document.createElement("h3");
+  heading.textContent = "EquipMarket Verification Result";
+
+  const codeLine = document.createElement("p");
+  codeLine.textContent = "Code: " + record.verification_code;
+
+  const typeLine = document.createElement("p");
+  typeLine.textContent =
+    "Account type: " + String(record.account_type || "").toUpperCase();
+
+  const statusLine = document.createElement("p");
+  statusLine.textContent =
+    "Status: " + String(record.status || "").toUpperCase();
+
+  const dateLine = document.createElement("p");
+  dateLine.textContent = record.verified_at
+    ? "Verified on: " + new Date(record.verified_at).toLocaleDateString()
+    : "Verification date: Not available";
+
+  result.replaceChildren(heading,codeLine,typeLine,statusLine,dateLine);
+}
 function init(){
   if(configured()){
     db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
