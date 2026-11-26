@@ -934,7 +934,7 @@ footer{background:var(--navy);color:#dce8f3;text-align:center;padding:28px;margi
 <div class="box" id="adminBuyerVerificationPanel">
   <h3>Buyer verification applications</h3>
 
-  <select id="buyerVerificationStatusFilter">
+  <select id="buyerVerificationStatusFilter" onchange="loadAdminBuyerVerifications()">
     <option value="pending">Pending</option>
     <option value="approved">Approved</option>
     <option value="rejected">Rejected</option>
