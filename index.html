@@ -1276,42 +1276,28 @@ async function loadMessages(){
  const conversations=new Map();
  data.forEach(m=>{
   const other=m.sender_id===user.id?m.recipient_id:m.sender_id;
-  const key=m.listing_id+"_"+other;
-  if(!conversations.has(key)){
-   conversations.set(key,{
-    listingId:m.listing_id,
-    other:other,
-    title:m.listings?.title||"Equipment enquiry",
-    sellerId:m.listings?.seller_id||null,
-    messages:[]
-   });
+  async function loadSellerProfile(){
+  if(!db||!user)return;
+
+  const {data,error}=await db.from("profiles")
+    .select("business_name,seller_type,country,city,phone,website,bio")
+    .eq("id",user.id).maybeSingle();
+
+  if(error){
+    console.error("Profile loading error:",error.message);
+    return;
   }
-  conversations.get(key).messages.push(m);
- });
 
- const threads=Array.from(conversations.values());
- threads.forEach(thread=>thread.messages.sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)));
- threads.sort((a,b)=>new Date(b.messages[b.messages.length-1].created_at)-new Date(a.messages[a.messages.length-1].created_at));
+  if(!data)return;
 
- box.innerHTML=threads.map(thread=>{
-  const messages=thread.messages.map(m=>{
-   const mine=m.sender_id===user.id;
-   let senderLabel=mine?"You":(thread.sellerId&&m.sender_id===thread.sellerId?"Seller":"Buyer");
-   return `<div class="message-line"><div class="message-meta"><b>${senderLabel}</b><span>${safe(new Date(m.created_at).toLocaleString())}</span></div><p>${safe(m.message)}</p></div>`;
-  }).join("");
-  const count=thread.messages.length;
-  return `<div class="conversation"><div class="conversation-head"><div><b>${safe(thread.title)}</b><small>${count} message${count===1?"":"s"} in this conversation</small></div></div><div class="conversation-messages">${messages}</div><div class="conversation-actions"><button class="secondary" type="button" onclick="replyTo('${thread.listingId}','${thread.other}')">Reply</button></div></div>`;
- }).join("");
+  document.getElementById("profileBusinessName").value=data.business_name||"";
+  document.getElementById("profileSellerType").value=data.seller_type||"Individual";
+  document.getElementById("profileCountry").value=data.country||"";
+  document.getElementById("profileCity").value=data.city||"";
+  document.getElementById("profilePhone").value=data.phone||"";
+  document.getElementById("profileWebsite").value=data.website||"";
+  document.getElementById("profileBio").value=data.bio||"";
 }
-function openReport(listing,button){
- if(!user){alert("Please sign in to report a listing.");openAuth();return}
- const form=document.getElementById("reportForm");form.reset();form.elements.listing_id.value=listing;
- const title=button?.closest(".card")?.querySelector("h3")?.textContent||"this listing";
- document.getElementById("reportListingTitle").textContent="Reporting: "+title;
- document.getElementById("reportMsg").textContent="";
- document.getElementById("reportModal").classList.add("open");
-}
-function closeReport(){document.getElementById("reportModal").classList.remove("open")}
 document.getElementById("reportForm").addEventListener("submit",async e=>{
  e.preventDefault();if(!db||!user){document.getElementById("reportMsg").textContent="Please sign in again before submitting.";return}
  const f=Object.fromEntries(new FormData(e.target));
