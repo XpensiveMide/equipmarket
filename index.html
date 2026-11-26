@@ -931,6 +931,25 @@ footer{background:var(--navy);color:#dce8f3;text-align:center;padding:28px;margi
     </div>
   </div>
 
+<div class="box" id="adminBuyerVerificationPanel">
+  <h3>Buyer verification applications</h3>
+
+  <select id="buyerVerificationStatusFilter">
+    <option value="pending">Pending</option>
+    <option value="approved">Approved</option>
+    <option value="rejected">Rejected</option>
+    <option value="all">All applications</option>
+  </select>
+
+  <p id="adminBuyerVerificationCount" class="muted">
+    0 applications
+  </p>
+
+  <div id="adminBuyerVerificationList" class="muted">
+    Buyer applications will appear here.
+  </div>
+</div>
+
 </section>
 
 </main>
