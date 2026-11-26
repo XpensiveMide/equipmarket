@@ -1432,6 +1432,55 @@ async function loadAdminBuyerVerifications() {
   }).join("");
 }
 
+async function saveBuyerVerificationStatus(applicationId) {
+  if (!db || !user || !await checkAdminAccess()) {
+    alert("Authorized admin access is required.");
+    return;
+  }
+
+  const status = document.getElementById(
+    `buyer-vstatus-${applicationId}`
+  )?.value;
+
+  const adminNotes = document.getElementById(
+    `buyer-vnote-${applicationId}`
+  )?.value.trim() || null;
+
+  if (!["pending", "approved", "rejected"].includes(status)) {
+    alert("Invalid buyer verification decision.");
+    return;
+  }
+
+  if (status === "rejected" && !adminNotes) {
+    alert("Please provide a reason for rejecting this application.");
+    return;
+  }
+
+  if (status === "approved" &&
+      !confirm("Approve this buyer's verification?")) {
+    return;
+  }
+
+  const { error } = await db
+    .from("buyer_verification_requests")
+    .update({
+      status: status,
+      admin_notes: adminNotes,
+      reviewed_by: user.id,
+      reviewed_at: new Date().toISOString()
+    })
+    .eq("id", applicationId);
+
+  if (error) {
+    alert("Could not save buyer review: " + error.message);
+    return;
+  }
+
+  alert("Buyer verification review saved successfully.");
+
+  await loadAdminBuyerVerifications();
+}
+
 async function openVerificationDocument(applicationId){
  if(!db||!user||!await checkAdminAccess()){alert("Authorized admin access is required.");return}
  const {data,error}=await db.from("seller_verifications").select("document_path").eq("id",applicationId).single();
