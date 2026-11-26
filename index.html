@@ -1559,16 +1559,66 @@ function formatDescription(value){
   return html;
 }
 
-function showDashboard(){document.getElementById("adminDashboard").style.display="none";document.getElementById("dashboard").style.display="block";document.getElementById("dashboard").scrollIntoView({behavior:"smooth"});loadMine();loadMessages();loadSellerVerification();loadSellerProfile()}
-async function showAdminDashboard(){
- const allowed=await checkAdminAccess();
- if(!allowed){alert("This account is not authorized to access admin moderation.");return}
- document.getElementById("dashboard").style.display="none";
- document.getElementById("adminDashboard").style.display="block";
- document.getElementById("adminDashboard").scrollIntoView({behavior:"smooth"});
- await loadAdminReports();
-  await loadAdminVerifications();
+
+function showDashboard(){
+  document.getElementById("adminDashboard").style.display="none";
+  document.getElementById("dashboard").style.display="block";
+
+  document.getElementById("dashboard").scrollIntoView({
+    behavior:"smooth"
+  });
+
+  loadMine();
+  loadMessages();
+  loadSellerVerification();
+  loadSellerProfile();
+
+  showDashboardSection("overview");
 }
+
+function showDashboardSection(section,button){
+  const panels=document.querySelectorAll(".em-dashboard-panel");
+
+  panels.forEach(panel=>{
+    panel.classList.remove("active");
+  });
+
+  const selected=document.getElementById("dashboard-"+section);
+
+  if(selected){
+    selected.classList.add("active");
+  }
+
+  document.querySelectorAll(".em-dashboard-nav button").forEach(item=>{
+    item.classList.remove("active");
+  });
+
+  if(button){
+    button.classList.add("active");
+  }else{
+    const defaultButton=document.querySelector(
+      '.em-dashboard-nav button[onclick*="overview"]'
+    );
+    if(defaultButton) defaultButton.classList.add("active");
+  }
+
+  const heading=document.querySelector(".em-dashboard-heading h2");
+
+  const titles={
+    overview:"Dashboard Overview",
+    store:"My Store",
+    listings:"My Listings",
+    add:"Add Equipment",
+    messages:"Messages",
+    verification:"Verification",
+    account:"Account Settings"
+  };
+
+  if(heading){
+    heading.textContent=titles[section]||"Dashboard";
+  }
+}
+
 async function loadAdminReports(){
  const box=document.getElementById("adminReportList");
  if(!box)return;
