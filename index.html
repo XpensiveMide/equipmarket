@@ -1609,16 +1609,18 @@ function formatDescription(value){
 
 
 function showDashboard(){
+  alert("Function started");
+
   document.getElementById("adminDashboard").style.display="none";
+
   document.getElementById("dashboard").style.display="block";
-  alert("Dashboard section opened");
-  const emailPanel = document.getElementById("dashboardAccountEmail");
-if(emailPanel){
-  emailPanel.textContent = user?.email || "Email unavailable";
-}
+
+  alert("Dashboard display changed");
+
   document.getElementById("dashboard").scrollIntoView({
     behavior:"smooth"
   });
+}
 
   loadMine();
   loadMessages();
