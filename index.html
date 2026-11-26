@@ -2122,6 +2122,7 @@ const listingData = {
 });
 
 
+
 async function editListing(id) {
   if (!db || !user) {
     alert("Please sign in first.");
@@ -2129,7 +2130,7 @@ async function editListing(id) {
   }
 
   const { data, error } = await db.from("listings")
-    .select("id,title,category,price,currency,country,city,description,image_urls")
+    .select("id,title,category,price,currency,country,city,description,image_urls,available_for_sale,available_for_rent,rental_daily_price,rental_weekly_price,rental_monthly_price")
     .eq("id", id)
     .eq("seller_id", user.id)
     .single();
@@ -2141,7 +2142,13 @@ async function editListing(id) {
 
   const form = document.getElementById("newListing");
 
+  if (!form) {
+    alert("The equipment editing form could not be found.");
+    return;
+  }
+
   editingListingId = data.id;
+
   editingListingImageUrls = Array.isArray(data.image_urls)
     ? data.image_urls
     : [];
@@ -2153,25 +2160,33 @@ async function editListing(id) {
   form.elements.namedItem("country").value = data.country || "";
   form.elements.namedItem("city").value = data.city || "";
   form.elements.namedItem("description").value = data.description || "";
-   form.elements.namedItem("offer_type").value =
-  data.available_for_sale && data.available_for_rent ? "both" :
-  data.available_for_rent ? "rent" : "sale";
 
-form.elements.namedItem("rental_daily_price").value =
-  data.rental_daily_price ?? "";
+  form.elements.namedItem("offer_type").value =
+    data.available_for_sale && data.available_for_rent ? "both" :
+    data.available_for_rent ? "rent" : "sale";
 
-form.elements.namedItem("rental_weekly_price").value =
-  data.rental_weekly_price ?? "";
+  form.elements.namedItem("rental_daily_price").value =
+    data.rental_daily_price ?? "";
 
-form.elements.namedItem("rental_monthly_price").value =
-  data.rental_monthly_price ?? "";
+  form.elements.namedItem("rental_weekly_price").value =
+    data.rental_weekly_price ?? "";
+
+  form.elements.namedItem("rental_monthly_price").value =
+    data.rental_monthly_price ?? "";
+
   document.getElementById("listingPhotos").value = "";
 
   form.closest(".box").querySelector("h3").textContent = "Edit listing";
   form.querySelector('button[type="submit"]').textContent = "Save changes";
 
-  form.scrollIntoView({ behavior: "smooth", block: "center" });
+  showDashboardSection("add");
+
+  form.scrollIntoView({
+    behavior: "smooth",
+    block: "center"
+  });
 }
+
 
 async function removeListing(id){if(!confirm("Delete this listing?"))return;let {error}=await db.from("listings").delete().eq("id",id);if(error)alert(error.message);else{loadMine();loadListings()}}
 async function enquire(id){if(!db){alert("Messaging is unavailable in preview mode.");return}let {data,error}=await db.from("listings").select("id,title,seller_id,status").eq("id",id).single();if(error){alert(error.message);return}if(!user){alert("Please sign in to contact the seller.");openAuth();return}if(user.id===data.seller_id){alert("This is your own listing. Buyers can contact you from this page.");return}if(data.status!=="active"){alert("This listing is not currently active.");return}openEnquiry(data.id,data.title,data.seller_id)}
