@@ -452,7 +452,24 @@ footer{background:var(--navy);color:#dce8f3;text-align:center;padding:28px;margi
 <label>Country</label><input name="country" required placeholder="e.g. Nigeria">
 <label>City</label><input name="city" required placeholder="e.g. Akure">
 <label>Description</label><textarea name="description" required placeholder="Condition, year, operating hours, specifications..."></textarea>
-<label>Equipment photos (up to 5 images, max 10 MB each)</label>
+<label>
+<label>How would you like to offer this equipment?</label>
+<select name="offer_type" required>
+  <option value="sale">For sale</option>
+  <option value="rent">For rent</option>
+  <option value="both">For sale and rent</option>
+</select>
+
+<h3>Rental prices (complete if offering for rent)</h3>
+<label>Daily rental price</label>
+<input name="rental_daily_price" type="number" min="0" step="0.01" placeholder="Daily price">
+
+<label>Weekly rental price</label>
+<input name="rental_weekly_price" type="number" min="0" step="0.01" placeholder="Weekly price">
+
+<label>Monthly rental price</label>
+<input name="rental_monthly_price" type="number" min="0" step="0.01" placeholder="Monthly price">
+Equipment photos (up to 5 images, max 10 MB each)</label>
 <input
   type="file"
   name="photos"
