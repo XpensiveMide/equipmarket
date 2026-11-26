@@ -1355,6 +1355,35 @@ async function openVerificationDocument(applicationId){
  window.open(linkData.signedUrl,"_blank","noopener");
 }
 
+async function openBuyerVerificationDocument(applicationId) {
+  if (!db || !user || !await checkAdminAccess()) {
+    alert("Authorized admin access is required.");
+    return;
+  }
+
+  const { data, error } = await db
+    .from("buyer_verification_requests")
+    .select("document_path")
+    .eq("id", applicationId)
+    .single();
+
+  if (error || !data?.document_path) {
+    alert("Could not find the buyer's submitted document.");
+    return;
+  }
+
+  const { data: linkData, error: linkError } = await db.storage
+    .from(BUYER_VERIFICATION_BUCKET)
+    .createSignedUrl(data.document_path, 300);
+
+  if (linkError) {
+    alert("Could not open document: " + linkError.message);
+    return;
+  }
+
+  window.open(linkData.signedUrl, "_blank", "noopener");
+}
+
 async function saveVerificationStatus(applicationId){
  if(!db||!user||!await checkAdminAccess()){alert("Authorized admin access is required.");return}
  const status=document.getElementById("vstatus-"+applicationId);
