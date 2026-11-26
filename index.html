@@ -723,14 +723,27 @@ Equipment photos (up to 5 images, max 10 MB each)</label>
 <div class="formrow"><button type="submit" id="sellerVerificationSubmit">Submit for verification</button></div>
 </form><p class="muted" id="sellerVerificationMsg" aria-live="polite"></p>
 </div>
-<div class="box" style="margin-top:16px"><div class="head"><h3>Enquiries & messages</h3><button class="secondary" type="button" onclick="enableMessageNotifications()">Enable alerts</button></div><p class="muted">Messages about your listings and your replies appear here. <span id="messageAlertStatus">Alerts start when you sign in.</span></p><div id="messageInbox" class="muted">Sign in to view messages.</div></div></section>
-<section class="wrap" id="adminDashboard"><div class="head"><div><h2>Admin moderation</h2><p class="muted">Private report review for authorized EquipMarket administrators.</p></div><button class="secondary" type="button" onclick="loadAdminReports()">Refresh reports</button></div>
-<div class="admin-toolbar"><label for="reportStatusFilter" style="margin:0">Show reports</label><select id="reportStatusFilter" onchange="loadAdminReports()"><option value="pending">Pending</option><option value="reviewing">Reviewing</option><option value="resolved">Resolved</option><option value="dismissed">Dismissed</option><option value="all">All reports</option></select><span class="muted" id="adminReportCount"></span></div>
-<div id="adminReportList" class="muted">Loading moderation reports...</div>
-<div class="head" style="margin-top:30px"><div><h2>Seller verification applications</h2><p class="muted">Review seller details and privately view submitted documents.</p></div><button class="secondary" type="button" onclick="loadAdminVerifications()">Refresh applications</button></div>
-<div class="admin-toolbar"><label for="verificationStatusFilter" style="margin:0">Show applications</label><select id="verificationStatusFilter" onchange="loadAdminVerifications()"><option value="pending">Pending</option><option value="reviewing">Reviewing</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="all">All applications</option></select><span class="muted" id="adminVerificationCount"></span></div>
-<div id="adminVerificationList" class="muted">Seller applications will appear here.</div>
+
+</div>
+
+<div class="em-dashboard-panel" id="dashboard-messages">
+  <div class="box" style="margin-top:16px">
+    <div class="head">
+      <h3>Enquiries & messages</h3>
+      <button class="secondary" type="button" onclick="enableMessageNotifications()">Enable alerts</button>
+    </div>
+    <p class="muted">
+      Messages about your listings and your replies appear here.
+      <span id="messageAlertStatus">Alerts start when you sign in.</span>
+    </p>
+    <div id="messageInbox" class="muted">Sign in to view messages.</div>
+  </div>
+</div>
+
+</div>
+</div>
 </section>
+
 </main>
 <footer><div class="brand">Equip<span>Market</span></div><p>Global equipment trading, made easier.</p><p>Marketplace platform preview</p></footer>
 <div class="modal" id="enquiryModal"><div class="panel"><div class="head"><h2 id="enquiryTitle">Contact seller</h2><button class="secondary" type="button" onclick="closeEnquiry()">Close</button></div><form id="enquiryForm"><input type="hidden" name="listing_id"><input type="hidden" name="recipient_id"><label>Your message</label><textarea name="message" required maxlength="3000" placeholder="Hello, I am interested in this equipment. Is it still available?"></textarea><div class="formrow"><button type="submit">Send enquiry</button></div></form><p class="muted" id="enquiryMsg"></p></div></div>
