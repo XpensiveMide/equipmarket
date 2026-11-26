@@ -618,12 +618,49 @@ footer{background:var(--navy);color:#dce8f3;text-align:center;padding:28px;margi
         <p id="who"></p>
       </div>
 
-      <div class="em-dashboard-panel active" id="dashboard-overview">
-        <div class="box">
-          <h3>Welcome to EquipMarket</h3>
-          <p>Manage your equipment, business profile, enquiries and verification from one place.</p>
-        </div>
-      </div>
+      
+<div class="em-dashboard-panel active" id="dashboard-overview">
+
+  <div class="box">
+    <h3>Welcome to EquipMarket</h3>
+    <p class="muted">Your business control centre. Manage your equipment and connect with buyers worldwide.</p>
+  </div>
+
+  <div class="dashgrid">
+
+    <div class="box">
+      <h3>📦 My Equipment</h3>
+      <p class="muted">View and manage your published equipment.</p>
+      <button type="button" onclick="showDashboardSection('listings')">Manage listings</button>
+    </div>
+
+    <div class="box">
+      <h3>➕ Add Equipment</h3>
+      <p class="muted">Publish equipment for sale, rent or both.</p>
+      <button type="button" onclick="showDashboardSection('add')">Create listing</button>
+    </div>
+
+    <div class="box">
+      <h3>💬 Buyer Messages</h3>
+      <p class="muted">View enquiries and communicate with buyers.</p>
+      <button type="button" onclick="showDashboardSection('messages')">Open messages</button>
+    </div>
+
+    <div class="box">
+      <h3>🛡️ EquipMarket Verified</h3>
+      <p class="muted">Manage your seller identity and verification.</p>
+      <button type="button" onclick="showDashboardSection('verification')">View verification</button>
+    </div>
+
+    <div class="box">
+      <h3>🏪 My Store</h3>
+      <p class="muted">Manage your public seller profile.</p>
+      <button type="button" onclick="showDashboardSection('store')">Manage store</button>
+    </div>
+
+  </div>
+</div>
+
 
 <div class="em-dashboard-panel active" id="dashboard-store">
   <div class="box">
