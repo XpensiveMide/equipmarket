@@ -1277,40 +1277,7 @@ async function loadMessages(){
  data.forEach(m=>{
   const other=m.sender_id===user.id?m.recipient_id:m.sender_id;
   
-async function loadSellerProfile(){
-  if(!db||!user)return;
 
-  const {data,error}=await db.from("profiles")
-    .select("business_name,seller_type,country,city,phone,website,bio")
-    .eq("id",user.id).maybeSingle();
-
-  if(error){
-    console.error("Profile loading error:",error.message);
-    return;
-  }
-
-  if(!data)return;
-
-  document.getElementById("profileBusinessName").value=data.business_name||"";
-  document.getElementById("profileSellerType").value=data.seller_type||"Individual";
-  document.getElementById("profileCountry").value=data.country||"";
-  document.getElementById("profileCity").value=data.city||"";
-  document.getElementById("profilePhone").value=data.phone||"";
-  document.getElementById("profileWebsite").value=data.website||"";
-  document.getElementById("profileBio").value=data.bio||"";
-}
-
- document.getElementById("enquiryMsg").textContent="";document.getElementById("enquiryModal").classList.add("open");
-}
-function closeEnquiry(){document.getElementById("enquiryModal").classList.remove("open")}
-function replyTo(listing,recipient){const title="Reply to enquiry";openEnquiry(listing,title,recipient)}
-document.getElementById("enquiryForm").addEventListener("submit",async e=>{
- e.preventDefault();if(!db||!user){alert("Please sign in first.");return}
- const f=Object.fromEntries(new FormData(e.target));const message=f.message.trim();if(!message)return;
- const {error}=await db.from("messages").insert({listing_id:f.listing_id,sender_id:user.id,recipient_id:f.recipient_id,message});
- if(error){document.getElementById("enquiryMsg").textContent="Could not send: "+error.message;return}
- closeEnquiry();alert("Your message has been sent.");loadMessages();
-});
 async function loadSellerProfile(){
   if(!db||!user)return;
 
