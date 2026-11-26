@@ -457,6 +457,116 @@ footer{background:var(--navy);color:#dce8f3;text-align:center;padding:28px;margi
   object-fit:contain;
   border-radius:50%;
 }
+
+/* EQUIPMARKET PROFESSIONAL DASHBOARD */
+#dashboard{
+  width:100%;
+  max-width:1500px;
+  padding:24px;
+}
+
+.em-dashboard-layout{
+  display:grid;
+  grid-template-columns:245px minmax(0,1fr);
+  gap:24px;
+  align-items:start;
+}
+
+.em-dashboard-sidebar{
+  background:#10243a;
+  color:#fff;
+  border-radius:14px;
+  padding:20px 14px;
+  position:sticky;
+  top:18px;
+}
+
+.em-dashboard-sidebar h3{
+  padding:0 10px;
+  margin:0 0 18px;
+  color:#fff;
+}
+
+.em-dashboard-nav{
+  display:grid;
+  gap:7px;
+}
+
+.em-dashboard-nav button{
+  width:100%;
+  text-align:left;
+  background:transparent;
+  color:#dce8f3;
+  padding:12px;
+  border-radius:8px;
+  border:0;
+}
+
+.em-dashboard-nav button.active,
+.em-dashboard-nav button:hover{
+  background:#254967;
+  color:#fff;
+}
+
+.em-dashboard-content{
+  min-width:0;
+}
+
+.em-dashboard-content .box{
+  margin-bottom:18px;
+}
+
+.em-dashboard-panel{
+  display:none;
+}
+
+.em-dashboard-panel.active{
+  display:block;
+}
+
+.em-dashboard-heading{
+  margin:0 0 20px;
+}
+
+.em-dashboard-heading h2{
+  margin:0 0 6px;
+  color:#10243a;
+}
+
+.em-dashboard-heading p{
+  margin:0;
+  color:#64748b;
+}
+
+@media(max-width:760px){
+  #dashboard{
+    padding:14px;
+  }
+
+  .em-dashboard-layout{
+    grid-template-columns:1fr;
+    gap:14px;
+  }
+
+  .em-dashboard-sidebar{
+    position:static;
+    padding:14px;
+  }
+
+  .em-dashboard-nav{
+    display:flex;
+    overflow-x:auto;
+    gap:7px;
+    padding-bottom:5px;
+  }
+
+  .em-dashboard-nav button{
+    width:auto;
+    min-width:max-content;
+    white-space:nowrap;
+  }
+}
+
 </style>
 </head>
 <body>
