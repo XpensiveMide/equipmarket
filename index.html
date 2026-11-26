@@ -1455,6 +1455,55 @@ async function loadMessages(){
   `).join("");
 }
 
+async function loadAccountVerification(){
+  const panel = document.getElementById("accountVerificationStatus");
+
+  if(!panel) return;
+
+  if(!db || !user){
+    panel.textContent = "Please sign in to view your verification status.";
+    return;
+  }
+
+  panel.textContent = "Loading verification status...";
+
+  const {data,error} = await db
+    .from("account_verifications")
+    .select("verification_code,account_type,status,verified_at")
+    .eq("user_id",user.id);
+
+  if(error){
+    console.error("Verification loading error:",error.message);
+    panel.textContent = "Unable to load verification status.";
+    return;
+  }
+
+  panel.replaceChildren();
+
+  if(!data || data.length === 0){
+    panel.textContent = "No verified buyer or seller identity yet.";
+    return;
+  }
+
+  data.forEach(item => {
+    const card = document.createElement("div");
+    card.className = "verification-record";
+
+    const heading = document.createElement("h4");
+    heading.textContent =
+      item.account_type.toUpperCase() + " VERIFICATION";
+
+    const status = document.createElement("p");
+    status.textContent = "Status: " + item.status.toUpperCase();
+
+    const code = document.createElement("p");
+    code.textContent = "Verification code: " + item.verification_code;
+
+    card.append(heading,status,code);
+    panel.appendChild(card);
+  });
+}
+
 async function loadSellerProfile(){
   if(!db||!user)return;
 
