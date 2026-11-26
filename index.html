@@ -1483,16 +1483,54 @@ document.getElementById("newListing").addEventListener("submit", async e => {
       photoUrls.push(data.publicUrl);
     }
 
-    const listingData = {
-      title: f.title,
-      category: f.category,
-      price: Number(f.price),
-      currency: f.currency,
-      country: f.country,
-      city: f.city,
-      description: f.description,
-      image_urls: [...editingListingImageUrls, ...photoUrls]
-    };
+    
+const offerType = f.offer_type || "sale";
+
+const toPrice = value =>
+  value === undefined || value.trim() === ""
+    ? null
+    : Number(value);
+
+const dailyPrice = toPrice(f.rental_daily_price);
+const weeklyPrice = toPrice(f.rental_weekly_price);
+const monthlyPrice = toPrice(f.rental_monthly_price);
+
+const rentalPrices = [dailyPrice, weeklyPrice, monthlyPrice];
+
+if (
+  offerType !== "sale" &&
+  rentalPrices.every(price => price === null)
+) {
+  throw new Error("Enter at least one rental price.");
+}
+
+if (
+  rentalPrices.some(price =>
+    price !== null && (!Number.isFinite(price) || price < 0)
+  )
+) {
+  throw new Error("Rental prices must be valid positive numbers.");
+}
+
+const listingData = {
+  title: f.title,
+  category: f.category,
+  price: Number(f.price),
+  currency: f.currency,
+  country: f.country,
+  city: f.city,
+  description: f.description,
+
+  available_for_sale: offerType === "sale" || offerType === "both",
+  available_for_rent: offerType === "rent" || offerType === "both",
+
+  rental_daily_price: offerType === "sale" ? null : dailyPrice,
+  rental_weekly_price: offerType === "sale" ? null : weeklyPrice,
+  rental_monthly_price: offerType === "sale" ? null : monthlyPrice,
+
+  image_urls: [...editingListingImageUrls, ...photoUrls]
+};
+
 
     if (isEditing) {
       const { error } = await db.from("listings")
