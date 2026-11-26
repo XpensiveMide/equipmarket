@@ -1244,11 +1244,73 @@ async function checkPublicVerification(){
 
   const record = data[0];
 
+    const status = String(record.status || "").toLowerCase();
+
+  const colors = {
+    verified: {
+      background: "#e8f7ed",
+      border: "#198754",
+      text: "#146c43",
+      label: "✓ VERIFIED"
+    },
+    pending: {
+      background: "#fff4df",
+      border: "#d99000",
+      text: "#946200",
+      label: "⏳ PENDING"
+    },
+    suspended: {
+      background: "#fdeaea",
+      border: "#dc3545",
+      text: "#b02a37",
+      label: "⚠ SUSPENDED"
+    },
+    revoked: {
+      background: "#fdeaea",
+      border: "#dc3545",
+      text: "#b02a37",
+      label: "✕ REVOKED"
+    }
+  };
+
+  const style = colors[status] || {
+    background: "#f1f3f5",
+    border: "#6c757d",
+    text: "#495057",
+    label: status.toUpperCase()
+  };
+
+  const card = document.createElement("div");
+  card.style.cssText = `
+    background:${style.background};
+    border:1px solid ${style.border};
+    border-left:5px solid ${style.border};
+    border-radius:12px;
+    padding:18px;
+    margin-top:15px;
+  `;
+
   const heading = document.createElement("h3");
   heading.textContent = "EquipMarket Verification Result";
+  heading.style.marginTop = "0";
+
+  const badge = document.createElement("div");
+  badge.textContent = style.label;
+  badge.style.cssText = `
+    display:inline-block;
+    background:${style.border};
+    color:white;
+    padding:8px 14px;
+    border-radius:20px;
+    font-weight:bold;
+    margin:8px 0 14px;
+  `;
+
+  const details = document.createElement("div");
+  details.style.lineHeight = "1.9";
 
   const codeLine = document.createElement("p");
-  codeLine.textContent = "Code: " + record.verification_code;
+  codeLine.textContent = "Verification code: " + record.verification_code;
 
   const typeLine = document.createElement("p");
   typeLine.textContent =
@@ -1256,14 +1318,18 @@ async function checkPublicVerification(){
 
   const statusLine = document.createElement("p");
   statusLine.textContent =
-    "Status: " + String(record.status || "").toUpperCase();
+    "Current status: " + status.toUpperCase();
+  statusLine.style.color = style.text;
+  statusLine.style.fontWeight = "bold";
 
   const dateLine = document.createElement("p");
   dateLine.textContent = record.verified_at
     ? "Verified on: " + new Date(record.verified_at).toLocaleDateString()
     : "Verification date: Not available";
 
-  result.replaceChildren(heading,codeLine,typeLine,statusLine,dateLine);
+  details.append(codeLine,typeLine,statusLine,dateLine);
+  card.append(heading,badge,details);
+  result.replaceChildren(card);
 }
 function init(){
   if(configured()){
