@@ -1604,7 +1604,18 @@ async function editListing(id) {
   form.elements.namedItem("country").value = data.country || "";
   form.elements.namedItem("city").value = data.city || "";
   form.elements.namedItem("description").value = data.description || "";
+   form.elements.namedItem("offer_type").value =
+  data.available_for_sale && data.available_for_rent ? "both" :
+  data.available_for_rent ? "rent" : "sale";
 
+form.elements.namedItem("rental_daily_price").value =
+  data.rental_daily_price ?? "";
+
+form.elements.namedItem("rental_weekly_price").value =
+  data.rental_weekly_price ?? "";
+
+form.elements.namedItem("rental_monthly_price").value =
+  data.rental_monthly_price ?? "";
   document.getElementById("listingPhotos").value = "";
 
   form.closest(".box").querySelector("h3").textContent = "Edit listing";
