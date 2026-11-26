@@ -985,6 +985,7 @@ function changeListingPhoto(button){
   
 
 
+
 function render(items){
   document.getElementById("grid").innerHTML=items.length?items.map(x=>{
     const photos=Array.isArray(x.image_urls)
@@ -992,15 +993,24 @@ function render(items){
       : [];
 
     const gallery=photos.length
-  ? `<div class="listing-gallery">
-      <img class="listing-main-photo" src="${safe(photos[0])}" alt="${safe(x.title)}" loading="lazy" onclick="openListingGallery(${JSON.stringify(photos).replace(/"/g,'&quot;')},0)" onerror="this.style.display='none';this.parentElement.textContent='🏭';">
-      ${photos.length>1?`<div class="photo-thumbnails">${photos.map((url,i)=>`
-        <button type="button" class="photo-thumb ${i===0?'active':''}" data-src="${safe(url)}" onclick="changeListingPhoto(this)">
-          <img src="${safe(url)}" alt="Equipment photo ${i+1}">
-        </button>
-      `).join("")}</div>`:""}
-    </div>`
-  : `<div class="photo">🏭</div>`;
+      ? `<div class="listing-gallery">
+          <img class="listing-main-photo" src="${safe(photos[0])}" alt="${safe(x.title)}" loading="lazy" onclick="openListingGallery(${JSON.stringify(photos).replace(/"/g,'&quot;')},0)" onerror="this.style.display='none';this.parentElement.textContent='🏭';">
+          ${photos.length>1?`<div class="photo-thumbnails">${photos.map((url,i)=>`
+            <button type="button" class="photo-thumb ${i===0?'active':''}" data-src="${safe(url)}" onclick="changeListingPhoto(this)">
+              <img src="${safe(url)}" alt="Equipment photo ${i+1}">
+            </button>
+          `).join("")}</div>`:""}
+        </div>`
+      : `<div class="photo">🏭</div>`;
+
+    const saleAvailable=x.available_for_sale!==false;
+    const rentAvailable=x.available_for_rent===true;
+
+    const rentalPrices=[
+      ["Daily",x.rental_daily_price],
+      ["Weekly",x.rental_weekly_price],
+      ["Monthly",x.rental_monthly_price]
+    ].filter(([label,value])=>value!==null&&value!==undefined&&value!=="");
 
     return `<article class="card">
       ${gallery}
@@ -1009,8 +1019,29 @@ function render(items){
         ${verifiedSellerIds.has(x.seller_id)?'<span class="verified-badge">✓ Verified Seller</span>':''}
         <h3>${safe(x.title)}</h3>
         <div class="muted">📍 ${safe([x.city,x.country].filter(Boolean).join(", "))}</div>
+
         <div class="description-content compact-description">${formatDescription(x.description)}</div>
-        <div class="price">${safe(x.currency||"")} ${safe(x.price??"Contact seller")}</div>
+
+        <div class="offer-labels">
+          ${saleAvailable?'<span class="tag">For Sale</span>':''}
+          ${rentAvailable?'<span class="tag">For Rent</span>':''}
+        </div>
+
+        ${saleAvailable?`
+          <div class="price">${safe(x.currency||"")} ${safe(x.price??"Contact seller")}</div>
+        `:""}
+
+        ${rentAvailable?`
+          <div class="rental-prices">
+            <strong>Rental Prices</strong>
+            ${rentalPrices.length
+              ? rentalPrices.map(([label,value])=>`
+                  <div>${label}: ${safe(x.currency||"")} ${safe(value)}</div>
+                `).join("")
+              : '<div>Contact seller for rental price</div>'}
+          </div>
+        `:""}
+
         <button onclick="viewSellerProfile('${x.seller_id}')">View Seller Profile</button>
         <button onclick="enquire('${x.id}')">Enquire</button>
         <button class="report-button" onclick="openReport('${x.id}',this)">Report listing</button>
@@ -1018,6 +1049,7 @@ function render(items){
     </article>`;
   }).join(""):"<p class='muted'>No listings found.</p>";
 }
+
 
 
 async function viewSellerProfile(sellerId){
