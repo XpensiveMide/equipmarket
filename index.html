@@ -595,7 +595,7 @@ footer{background:var(--navy);color:#dce8f3;text-align:center;padding:28px;margi
 <div class="filters"><button class="active" onclick="setCat('All',this)">All</button><button onclick="setCat('Construction',this)">Construction</button><button onclick="setCat('Industrial',this)">Industrial</button><button onclick="setCat('Agricultural',this)">Agricultural</button></div>
 <div class="grid" id="grid"></div>
  <section class="wrap" id="publicSellerProfile" style="display:none"></section>
-<div class="notice"><b>Marketplace:</b> Listings and buyer-to-seller enquiries are connected to the EquipMarket database. Seller photo uploads are planned for a later stage.</div></section>
+<div class="notice"><b>Marketplace:</b> Listings and buyer-to-seller enquiries are connected to the EquipMarket database. Sellers can upload up to five equipment photos per listing.</div></section>
 
 <section class="wrap" id="publicVerification">
   <div class="box">
@@ -2911,6 +2911,240 @@ async function enquire(id) {
     alert("Something went wrong. Please try again.");
   }
 }
+
+
+/* ENQUIRY AND LISTING REPORT FLOWS — restored using existing Supabase tables. */
+function openEnquiry(listingId, listingTitle, recipientId){
+  if(!db || !user){
+    alert("Please sign in to contact the seller.");
+    openAuth();
+    return;
+  }
+  if(!listingId || !recipientId || recipientId===user.id){
+    alert("This seller cannot be contacted from your account.");
+    return;
+  }
+
+  const modal=document.getElementById("enquiryModal");
+  const form=document.getElementById("enquiryForm");
+  const message=document.getElementById("enquiryMsg");
+  if(!modal || !form || !message){
+    alert("The enquiry form is temporarily unavailable. Please refresh the page.");
+    return;
+  }
+
+  form.reset();
+  form.elements.listing_id.value=listingId;
+  form.elements.recipient_id.value=recipientId;
+  document.getElementById("enquiryTitle").textContent=
+    listingTitle ? "Enquire about: "+listingTitle : "Contact seller";
+  message.textContent="Your message will be sent privately to the seller.";
+  modal.classList.add("open");
+  form.elements.message.focus();
+}
+
+function closeEnquiry(){
+  const modal=document.getElementById("enquiryModal");
+  if(modal)modal.classList.remove("open");
+}
+
+function openReport(listingId, trigger){
+  if(!db){
+    alert("The reporting service is temporarily unavailable. Please try again later.");
+    return;
+  }
+  if(!user){
+    const confirmed=confirm("Please sign in to report a listing. Would you like to sign in or register now?");
+    if(confirmed)openAuth();
+    return;
+  }
+  if(!listingId || typeof listingId!=="string"){
+    alert("This listing could not be identified. Please refresh the page.");
+    return;
+  }
+
+  const modal=document.getElementById("reportModal");
+  const form=document.getElementById("reportForm");
+  const message=document.getElementById("reportMsg");
+  if(!modal || !form || !message){
+    alert("The report form is temporarily unavailable. Please refresh the page.");
+    return;
+  }
+
+  form.reset();
+  form.querySelector('button[type="submit"]').disabled=false;
+  form.querySelector('button[type="submit"]').textContent="Submit report";
+  form.elements.listing_id.value=listingId;
+  message.textContent="Reports are reviewed by EquipMarket moderators.";
+  const title=document.getElementById("reportListingTitle");
+  if(title)title.textContent="Loading listing details...";
+  modal.classList.add("open");
+
+  db.from("listings")
+    .select("id,title,seller_id,status")
+    .eq("id",listingId)
+    .maybeSingle()
+    .then(({data,error})=>{
+      if(!modal.classList.contains("open") || form.elements.listing_id.value!==listingId)return;
+      if(error || !data){
+        title.textContent="Listing details could not be loaded. Close this form and refresh the page.";
+        form.querySelector('button[type="submit"]').disabled=true;
+        return;
+      }
+      if(data.seller_id===user.id){
+        title.textContent="You cannot report your own listing.";
+        form.querySelector('button[type="submit"]').disabled=true;
+        return;
+      }
+      if(data.status!=="active"){
+        title.textContent="This listing is no longer active.";
+        form.querySelector('button[type="submit"]').disabled=true;
+        return;
+      }
+      title.textContent="Listing: "+(data.title||"Equipment listing");
+      form.querySelector('button[type="submit"]').disabled=false;
+    })
+    .catch(error=>{
+      console.error("Report listing lookup error:",error);
+      if(title)title.textContent="Could not load listing details. Please try again.";
+      form.querySelector('button[type="submit"]').disabled=true;
+    });
+}
+
+function closeReport(){
+  const modal=document.getElementById("reportModal");
+  if(modal)modal.classList.remove("open");
+}
+
+document.getElementById("enquiryForm").addEventListener("submit",async event=>{
+  event.preventDefault();
+  const form=event.currentTarget;
+  const messageBox=document.getElementById("enquiryMsg");
+  const submit=form.querySelector('button[type="submit"]');
+  if(!db || !user){
+    messageBox.textContent="Please sign in again before sending your enquiry.";
+    return;
+  }
+
+  const listingId=form.elements.listing_id.value;
+  const recipientId=form.elements.recipient_id.value;
+  const message=form.elements.message.value.trim();
+  if(!listingId || !recipientId || !message){
+    messageBox.textContent="Please enter your message before sending.";
+    return;
+  }
+  if(message.length>3000){
+    messageBox.textContent="Your message must be 3,000 characters or fewer.";
+    return;
+  }
+  if(recipientId===user.id){
+    messageBox.textContent="You cannot send an enquiry to yourself.";
+    return;
+  }
+
+  const senderId=user.id;
+  submit.disabled=true;
+  submit.textContent="Sending...";
+  messageBox.textContent="Sending your enquiry securely...";
+  try{
+    const {data:listing,error:listingError}=await db
+      .from("listings")
+      .select("id,seller_id,status")
+      .eq("id",listingId)
+      .maybeSingle();
+    if(listingError)throw listingError;
+    if(!listing || listing.status!=="active" || listing.seller_id!==recipientId){
+      throw new Error("This listing is no longer available for enquiries. Please refresh and try again.");
+    }
+    const {error}=await db.from("messages").insert({
+      listing_id:listingId,
+      sender_id:senderId,
+      recipient_id:recipientId,
+      message:message
+    });
+    if(error)throw error;
+
+    form.reset();
+    closeEnquiry();
+    showMessageNotice("Enquiry sent","Your message has been sent to the seller.");
+    if(document.getElementById("dashboard")?.style.display==="block")await loadMessages();
+  }catch(error){
+    console.error("Enquiry submission error:",error);
+    messageBox.textContent="Could not send your enquiry: "+(error?.message||"Please try again.");
+  }finally{
+    submit.disabled=false;
+    submit.textContent="Send enquiry";
+  }
+});
+
+document.getElementById("reportForm").addEventListener("submit",async event=>{
+  event.preventDefault();
+  const form=event.currentTarget;
+  const messageBox=document.getElementById("reportMsg");
+  const submit=form.querySelector('button[type="submit"]');
+  if(!db || !user){
+    messageBox.textContent="Please sign in again before submitting a report.";
+    return;
+  }
+
+  const listingId=form.elements.listing_id.value;
+  const reason=form.elements.reason.value.trim();
+  const details=form.elements.details.value.trim();
+  if(!listingId || !reason){
+    messageBox.textContent="Please choose a reason for your report.";
+    return;
+  }
+  if(details.length>1000){
+    messageBox.textContent="Additional details must be 1,000 characters or fewer.";
+    return;
+  }
+
+  const reporterId=user.id;
+  submit.disabled=true;
+  submit.textContent="Submitting...";
+  messageBox.textContent="Submitting your report securely...";
+  try{
+    const {data:listing,error:listingError}=await db
+      .from("listings")
+      .select("id,seller_id,status")
+      .eq("id",listingId)
+      .maybeSingle();
+    if(listingError)throw listingError;
+    if(!listing || listing.status!=="active"){
+      throw new Error("This listing is no longer active and cannot be reported from this form.");
+    }
+    if(listing.seller_id===reporterId){
+      throw new Error("You cannot report your own listing.");
+    }
+
+    const {error}=await db.from("listing_reports").insert({
+      listing_id:listingId,
+      reporter_id:reporterId,
+      reason:reason,
+      details:details||null,
+      status:"pending"
+    });
+    if(error)throw error;
+
+    form.reset();
+    closeReport();
+    showMessageNotice("Report submitted","Thank you. EquipMarket moderators will review your report.");
+  }catch(error){
+    console.error("Listing report submission error:",error);
+    messageBox.textContent="Could not submit your report: "+(error?.message||"Please try again.");
+  }finally{
+    submit.disabled=false;
+    submit.textContent="Submit report";
+  }
+});
+
+// Close either modal when the user taps the shaded backdrop.
+document.getElementById("enquiryModal").addEventListener("click",event=>{
+  if(event.target===event.currentTarget)closeEnquiry();
+});
+document.getElementById("reportModal").addEventListener("click",event=>{
+  if(event.target===event.currentTarget)closeReport();
+});
 
 init();
 
