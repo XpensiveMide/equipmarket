@@ -862,7 +862,10 @@ footer{background:var(--navy);color:#dce8f3;text-align:center;padding:28px;margi
   <div class="box" style="margin-top:16px">
     <div class="head">
       <h3>Enquiries & messages</h3>
-      <button class="secondary" type="button" onclick="enableMessageNotifications()">Enable alerts</button>
+      <div class="formrow" style="margin:0;flex:0 0 auto">
+        <button class="secondary" type="button" onclick="loadMessages()">Refresh</button>
+        <button class="secondary" type="button" onclick="enableMessageNotifications()">Enable alerts</button>
+      </div>
     </div>
     <p class="muted">
       Messages about your listings and your replies appear here.
@@ -2130,6 +2133,7 @@ ${(listings||[]).map(x=>{
       <div class="description-content">${formatDescription(x.description)}</div>
         <div class="price">${safe(x.currency||"")} ${safe(x.price??"Contact seller")}</div>
         <button onclick="enquire('${x.id}')">Enquire</button>
+        ${user?.id!==x.seller_id?`<button type="button" class="report-button" onclick="openReport('${x.id}',this)">Report listing</button>`:""}
       </div>
     </article>`;
 
@@ -2295,6 +2299,7 @@ function showDashboardSection(section,button){
   if(heading){
     heading.textContent=titles[section]||"Dashboard";
   }
+  if(section==="messages")loadMessages();
 }
 async function showAdminDashboard(){
   if(!user){
@@ -2353,51 +2358,50 @@ async function saveReportStatus(reportId){
 }
 async function loadMessages(){
   const box=document.getElementById("messageInbox");
+  if(!box)return;
 
   if(!db||!user){
     box.textContent="Sign in to view messages.";
     return;
   }
 
+  const activeUserId=user.id;
   box.textContent="Loading conversations...";
 
   const {data,error}=await db.from("messages")
     .select("id,listing_id,sender_id,recipient_id,message,created_at,listings(title,seller_id)")
-    .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
+    .or(`sender_id.eq.${activeUserId},recipient_id.eq.${activeUserId}`)
     .order("created_at",{ascending:false})
     .limit(500);
 
+  if(user?.id!==activeUserId)return;
   if(error){
     box.textContent="Could not load messages: "+error.message;
     return;
   }
-
   if(!data||!data.length){
     box.textContent="No enquiries yet. Messages about your listings will appear here.";
     return;
   }
 
   const conversations=new Map();
-
   data.forEach(m=>{
-    const other=m.sender_id===user.id
-      ? m.recipient_id
-      : m.sender_id;
-
-    const key=m.listing_id+"_"+other;
-
+    const otherId=m.sender_id===activeUserId?m.recipient_id:m.sender_id;
+    const key=String(m.listing_id)+"_"+String(otherId);
     if(!conversations.has(key)){
       conversations.set(key,{
+        key,
+        listingId:m.listing_id,
+        otherId,
         title:m.listings?.title||"Equipment listing",
         messages:[]
       });
     }
-
     conversations.get(key).messages.push(m);
   });
 
   box.innerHTML=Array.from(conversations.values()).map(conversation=>`
-    <div class="conversation">
+    <section class="conversation" data-conversation="${safe(conversation.key)}">
       <div class="conversation-head">
         <b>${safe(conversation.title)}</b>
         <small>${conversation.messages.length} message(s)</small>
@@ -2406,17 +2410,80 @@ async function loadMessages(){
         ${conversation.messages.slice().reverse().map(m=>`
           <div class="message-line">
             <div class="message-meta">
-              <b>${m.sender_id===user.id?"You":"Other participant"}</b>
-              <span>${safe(new Date(m.created_at).toLocaleString())}</span>
+              <b>${m.sender_id===activeUserId?"You":"Other participant"}</b>
+              <span>${safe(m.created_at?new Date(m.created_at).toLocaleString():"Date unavailable")}</span>
             </div>
             <p>${safe(m.message)}</p>
           </div>
         `).join("")}
       </div>
-    </div>
+      <form class="conversation-reply-form" data-listing-id="${safe(conversation.listingId)}" data-recipient-id="${safe(conversation.otherId)}" style="padding:0 15px 15px">
+        <label>Reply</label>
+        <textarea name="reply" required maxlength="3000" placeholder="Write your reply to this buyer or seller..."></textarea>
+        <div class="formrow"><button type="submit">Send reply</button></div>
+        <p class="muted reply-status" aria-live="polite"></p>
+      </form>
+    </section>
   `).join("");
 }
 
+// Delegated handler keeps reply forms working after conversations refresh.
+document.getElementById("messageInbox")?.addEventListener("submit",async event=>{
+  const form=event.target.closest(".conversation-reply-form");
+  if(!form)return;
+  event.preventDefault();
+  const status=form.querySelector(".reply-status");
+  const submit=form.querySelector('button[type="submit"]');
+  if(!db||!user){
+    if(status)status.textContent="Please sign in again before replying.";
+    return;
+  }
+  const listingId=form.dataset.listingId;
+  const recipientId=form.dataset.recipientId;
+  const message=form.elements.reply.value.trim();
+  if(!listingId||!recipientId||!message){
+    if(status)status.textContent="Write a reply before sending.";
+    return;
+  }
+  if(recipientId===user.id){
+    if(status)status.textContent="This conversation recipient is invalid. Refresh and try again.";
+    return;
+  }
+  if(message.length>3000){
+    if(status)status.textContent="Your reply must be 3,000 characters or fewer.";
+    return;
+  }
+  const senderId=user.id;
+  submit.disabled=true;
+  submit.textContent="Sending...";
+  if(status)status.textContent="Sending securely...";
+  try{
+    const {data:listing,error:listingError}=await db.from("listings")
+      .select("id,status")
+      .eq("id",listingId)
+      .maybeSingle();
+    if(listingError)throw listingError;
+    if(!listing||listing.status!=="active"){
+      throw new Error("This listing is no longer active, so this conversation cannot accept replies.");
+    }
+    const {error}=await db.from("messages").insert({
+      listing_id:listingId,
+      sender_id:senderId,
+      recipient_id:recipientId,
+      message
+    });
+    if(error)throw error;
+    form.reset();
+    showMessageNotice("Reply sent","Your reply has been delivered to the other participant.");
+    await loadMessages();
+  }catch(error){
+    console.error("Conversation reply error:",error);
+    if(status)status.textContent="Could not send reply: "+(error?.message||"Please try again.");
+  }finally{
+    submit.disabled=false;
+    submit.textContent="Send reply";
+  }
+});
 
 async function loadAccountVerification(){
   const panel = document.getElementById("accountVerificationStatus");
