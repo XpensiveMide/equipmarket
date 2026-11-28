@@ -1196,13 +1196,20 @@ document.getElementById("sellerVerificationForm").addEventListener("submit",asyn
  if(currentSellerVerification&&["approved","reviewing"].includes(currentSellerVerification.status)){
   msg.textContent="Your application is already being reviewed or has been approved.";return
  }
+ const websiteValue=f.elements.website.value.trim();
+ if(websiteValue&&!safeHttpUrl(websiteValue)){
+  msg.textContent="Enter a valid website address beginning with https:// or http://.";f.elements.website.focus();return;
+ }
  submit.disabled=true;msg.textContent="Submitting your application...";
+ let newlyUploadedPath=null;
+ let databaseSaved=false;
  try{
   let documentPath=currentSellerVerification?.document_path||null;
   let documentName=currentSellerVerification?.document_name||null;
   if(file){
    const cleanName=file.name.replace(/[^a-zA-Z0-9._-]/g,"_").slice(-100);
    documentPath=`${user.id}/${crypto.randomUUID()}_${cleanName}`;
+   newlyUploadedPath=documentPath;
    const {error:uploadError}=await db.storage.from(VERIFICATION_BUCKET).upload(documentPath,file,{contentType:file.type,upsert:false});
    if(uploadError)throw uploadError;
    documentName=file.name;
@@ -1213,7 +1220,7 @@ document.getElementById("sellerVerificationForm").addEventListener("submit",asyn
    country:f.elements.country.value.trim(),
    city:f.elements.city.value.trim(),
    phone:f.elements.phone.value.trim(),
-   website:f.elements.website.value.trim()||null,
+   website:websiteValue||null,
    document_path:documentPath,
    document_name:documentName,
    status:"pending"
@@ -1225,11 +1232,21 @@ document.getElementById("sellerVerificationForm").addEventListener("submit",asyn
    result=await db.from("seller_verifications").insert({...payload,seller_id:user.id});
   }
   if(result.error)throw result.error;
+  databaseSaved=true;
+  if(newlyUploadedPath&&currentSellerVerification?.document_path&&
+     newlyUploadedPath!==currentSellerVerification.document_path){
+   const {error:oldFileError}=await db.storage.from(VERIFICATION_BUCKET)
+    .remove([currentSellerVerification.document_path]);
+   if(oldFileError)console.warn("The previous verification document could not be cleaned up:",oldFileError.message);
+  }
   msg.textContent="Your seller verification application has been submitted.";
   f.reset();
   await loadSellerVerification();
-   loadBuyerVerification();
  }catch(err){
+  if(newlyUploadedPath&&!databaseSaved){
+   const {error:cleanupError}=await db.storage.from(VERIFICATION_BUCKET).remove([newlyUploadedPath]);
+   if(cleanupError)console.warn("Could not clean up an unused verification upload:",cleanupError.message);
+  }
   msg.textContent="Could not submit application: "+(err?.message||"Please try again.");
  }finally{submit.disabled=false}
 });
@@ -1345,7 +1362,7 @@ async function loadAdminVerifications(){
  if(!rows.length){box.textContent="No applications in this view.";return}
  box.innerHTML=rows.map(v=>{
   const date=v.created_at?new Date(v.created_at).toLocaleString():"Date unavailable";
-  return `<article class="verification-card"><div class="report-top"><b>${safe(v.business_name)}</b><span class="status-pill">${safe(v.status)}</span></div><div class="report-meta"><b>Seller type:</b> ${safe(v.seller_type)}<br><b>Location:</b> ${safe([v.city,v.country].filter(Boolean).join(", "))}<br><b>Phone:</b> ${safe(v.phone)}<br><b>Website:</b> ${v.website?`<a href="${safe(v.website)}" target="_blank" rel="noopener">Open website</a>`:"Not provided"}<br><b>Submitted:</b> ${safe(date)}<br><b>Seller ID:</b> ${safe(v.seller_id)}<br><b>Document:</b> ${safe(v.document_name||"Not provided")}</div><button class="secondary" type="button" onclick="openVerificationDocument('${v.id}')">View private document</button><div class="report-actions"><label for="vstatus-${v.id}" style="margin:0">Decision</label><select id="vstatus-${v.id}"><option value="pending" ${v.status==="pending"?"selected":""}>Pending</option><option value="reviewing" ${v.status==="reviewing"?"selected":""}>Reviewing</option><option value="approved" ${v.status==="approved"?"selected":""}>Approved</option><option value="rejected" ${v.status==="rejected"?"selected":""}>Rejected</option></select></div><label for="vnote-${v.id}">Admin note (optional)</label><textarea id="vnote-${v.id}" maxlength="2000" placeholder="Reason for decision or information requested">${safe(v.admin_notes||"")}</textarea><div class="report-actions"><button type="button" onclick="saveVerificationStatus('${v.id}')">Save review</button></div></article>`;
+  return `<article class="verification-card"><div class="report-top"><b>${safe(v.business_name)}</b><span class="status-pill">${safe(v.status)}</span></div><div class="report-meta"><b>Seller type:</b> ${safe(v.seller_type)}<br><b>Location:</b> ${safe([v.city,v.country].filter(Boolean).join(", "))}<br><b>Phone:</b> ${safe(v.phone)}<br><b>Website:</b> ${safeHttpUrl(v.website)?`<a href="${safe(safeHttpUrl(v.website))}" target="_blank" rel="noopener noreferrer">Open website</a>`:"Not provided"}<br><b>Submitted:</b> ${safe(date)}<br><b>Seller ID:</b> ${safe(v.seller_id)}<br><b>Document:</b> ${safe(v.document_name||"Not provided")}</div><button class="secondary" type="button" onclick="openVerificationDocument('${v.id}')">View private document</button><div class="report-actions"><label for="vstatus-${v.id}" style="margin:0">Decision</label><select id="vstatus-${v.id}"><option value="pending" ${v.status==="pending"?"selected":""}>Pending</option><option value="reviewing" ${v.status==="reviewing"?"selected":""}>Reviewing</option><option value="approved" ${v.status==="approved"?"selected":""}>Approved</option><option value="rejected" ${v.status==="rejected"?"selected":""}>Rejected</option></select></div><label for="vnote-${v.id}">Admin note (optional)</label><textarea id="vnote-${v.id}" maxlength="2000" placeholder="Reason for decision or information requested">${safe(v.admin_notes||"")}</textarea><div class="report-actions"><button type="button" onclick="saveVerificationStatus('${v.id}')">Save review</button></div></article>`;
  }).join("");
 }
 
@@ -1485,12 +1502,20 @@ async function saveBuyerVerificationStatus(applicationId) {
 }
 
 async function openVerificationDocument(applicationId){
- if(!db||!user||!await checkAdminAccess()){alert("Authorized admin access is required.");return}
+ const documentWindow=window.open("about:blank","_blank");
+ if(!documentWindow){alert("Allow pop-ups for EquipMarket to view private verification documents.");return}
+ if(!db||!user||!await checkAdminAccess()){
+  documentWindow.close();alert("Authorized admin access is required.");return;
+ }
  const {data,error}=await db.from("seller_verifications").select("document_path").eq("id",applicationId).single();
- if(error||!data?.document_path){alert("Could not find the submitted document.");return}
+ if(error||!data?.document_path){
+  documentWindow.close();alert("Could not find the submitted document.");return;
+ }
  const {data:linkData,error:linkError}=await db.storage.from(VERIFICATION_BUCKET).createSignedUrl(data.document_path,300);
- if(linkError){alert("Could not open document: "+linkError.message);return}
- window.open(linkData.signedUrl,"_blank","noopener");
+ if(linkError||!linkData?.signedUrl){
+  documentWindow.close();alert("Could not open document: "+(linkError?.message||"Signed link unavailable."));return;
+ }
+ documentWindow.location.href=linkData.signedUrl;
 }
 
 async function openBuyerVerificationDocument(applicationId) {
@@ -1527,13 +1552,40 @@ async function saveVerificationStatus(applicationId){
  const status=document.getElementById("vstatus-"+applicationId);
  const notes=document.getElementById("vnote-"+applicationId);
  if(!status||!notes)return;
- const {error}=await db.from("seller_verifications").update({
-  status:status.value,
-  admin_notes:notes.value.trim()||null,
+
+ const nextStatus=status.value;
+ const adminNotes=notes.value.trim();
+ if(!["pending","reviewing","approved","rejected"].includes(nextStatus)){
+  alert("Choose a valid seller verification decision.");return;
+ }
+ if(nextStatus==="rejected"&&!adminNotes){
+  alert("Please provide a reason before rejecting this application.");notes.focus();return;
+ }
+ if(nextStatus==="approved"&&!confirm("Approve this seller's verification? Confirm that the submitted document and business details have been checked.")){
+  return;
+ }
+
+ const {data:application,error:lookupError}=await db
+  .from("seller_verifications")
+  .select("id,document_path")
+  .eq("id",applicationId)
+  .maybeSingle();
+ if(lookupError||!application){
+  alert("Could not confirm this application: "+(lookupError?.message||"Application not found."));return;
+ }
+ if(nextStatus==="approved"&&!application.document_path){
+  alert("This application has no supporting document. It cannot be approved.");return;
+ }
+
+ const {data:updated,error}=await db.from("seller_verifications").update({
+  status:nextStatus,
+  admin_notes:adminNotes||null,
   reviewed_by:user.id,
   reviewed_at:new Date().toISOString()
- }).eq("id",applicationId);
+ }).eq("id",applicationId).select("id").maybeSingle();
  if(error){alert("Could not save review: "+error.message);return}
+ if(!updated){alert("No application was updated. Refresh the admin queue and try again.");return}
+ alert("Seller verification review saved.");
  await loadAdminVerifications();
 }
 
@@ -2147,6 +2199,12 @@ document.getElementById("grid").style.display="grid";
 }
   
 function safe(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function safeHttpUrl(value){
+ try{
+  const url=new URL(String(value||"").trim());
+  return ["http:","https:"].includes(url.protocol)?url.href:"";
+ }catch(e){return ""}
+}
   
 function formatDescription(value){
   let text=String(value||"").trim();
@@ -2252,6 +2310,8 @@ function showDashboard(){
   loadMine();
   loadMessages();
   loadSellerVerification();
+  loadBuyerVerification();
+  loadAccountVerification();
   loadSellerProfile();
 
   showDashboardSection("overview");
